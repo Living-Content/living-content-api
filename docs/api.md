@@ -75,9 +75,9 @@ This uses Living Content's built-in user management system. This method:
    ```bash
    # All subsequent requests
    curl -X POST https://api.example.com/query/submit \
-     -H "Authorization: Bearer access_token" \
+     -H "Authorization: Bearer user_access_token" \
      -H "X-User-ID: user_id" \
-     -H "X-Content-Session-ID: session_id" \
+     -H "X-Content-Session-ID: content_session_id" \
      -d '{"query": "your query"}'
    ```
 
@@ -116,7 +116,7 @@ auth-providers_your_provider_name: "your_provider_secret"
 
    ```json
    {
-       "userId": "generated_internal_id",
+       "userId": "generated_internal_user_id",
        "accessToken": "generated_access_token",
        "isNewUser": true
    }
@@ -126,7 +126,7 @@ auth-providers_your_provider_name: "your_provider_secret"
 
    ```json
    {
-       "userId": "existing_internal_id",
+       "userId": "existing_internal_user_id",
        "accessToken": "existing_access_token",
        "isNewUser": false
    }
@@ -195,12 +195,12 @@ Content sessions are required when using Authentication Provider or Managed API 
 ```bash
 # Create session
 curl -X POST https://api.example.com/content-session/create \
-  -H "Authorization: Bearer your_access_token" \
+  -H "Authorization: Bearer user_access_token" \
   -H "X-User-ID: user_id"
 
 # Get session data
 curl -X GET https://api.example.com/content-session/get-data \
-  -H "Authorization: Bearer your_access_token" \
+  -H "Authorization: Bearer user_access_token" \
   -H "X-User-ID: user_id" \
   -H "X-Content-Session-ID: session_id"
 ```
@@ -211,12 +211,12 @@ curl -X GET https://api.example.com/content-session/get-data \
 # Create session
 curl -X POST https://api.example.com/content-session/create \
   -H "Authorization: Bearer your_provider_secret" \
-  -H "X-Auth-User-ID: user_id"
+  -H "X-Auth-User-ID: your_user_id"
 
 # Get session data
 curl -X GET https://api.example.com/content-session/get-data \
   -H "Authorization: Bearer your_provider_secret" \
-  -H "X-Auth-User-ID: user_id" \
+  -H "X-Auth-User-ID: your_user_id" \
   -H "X-Content-Session-ID: session_id"
 ```
 
