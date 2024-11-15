@@ -43,16 +43,9 @@ Configuration is handled by YAML files for development, production, and staging 
 
 **Note:** Use `init:all --force` to reset configuration to defaults.
 
-### Create Secrets
-
-1. Edit `secrets.yaml` files in `/secrets`
-2. Generate encrypted secrets:
-
-```bash
-./lc.sh secrets:generate
-```
-
 ### Set Your Environment
+
+This will also generate your config.
 
 Your development environment should be: `development`, `staging`, or `production`.
 
@@ -60,6 +53,15 @@ Generate your `.env` file:
 
 ```bash
 ./lc.sh env:set --env=<environment>
+```
+
+### Generate Secrets
+
+1. Edit `secrets.yaml` files in `/secrets`
+2. Generate encrypted secrets:
+
+```bash
+./lc.sh secrets:generate
 ```
 
 ### SSL Certificate Setup
