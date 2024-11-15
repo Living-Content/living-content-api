@@ -19,6 +19,8 @@ This guide explains the three ways to interact with the Living Content API:
     - [Setup](#setup)
     - [Making Requests](#making-requests)
   - [Content Sessions](#content-sessions)
+    - [Managed API Access Content Session Flow](#managed-api-access-content-session-flow)
+    - [Authentication Provider API Access Content Session Flow](#authentication-provider-api-access-content-session-flow)
   - [CORS Configuration](#cors-configuration)
     - [Server-to-Server Communication](#server-to-server-communication)
   - [Available Endpoints](#available-endpoints)
@@ -92,7 +94,7 @@ As an auth provider you will need to store the user's Content Session ID(s) and 
 
 ### Provider Setup
 
-1. Register as an auth provider and receive a provider secret
+1. Register as an auth provider and receive a provider secret by contacting <hello@livingcontent.co>
 2. Add to secrets configuration:
 
 ```yaml
@@ -188,6 +190,8 @@ Not supported with Direct API Access.
 
 Content sessions are required when using Authentication Provider or Managed API Access:
 
+### Managed API Access Content Session Flow
+
 ```bash
 # Create session
 curl -X POST https://api.example.com/content-session/create \
@@ -198,6 +202,21 @@ curl -X POST https://api.example.com/content-session/create \
 curl -X GET https://api.example.com/content-session/get-data \
   -H "Authorization: Bearer your_access_token" \
   -H "X-User-ID: user_id" \
+  -H "X-Content-Session-ID: session_id"
+```
+
+### Authentication Provider API Access Content Session Flow
+
+```bash
+# Create session
+curl -X POST https://api.example.com/content-session/create \
+  -H "Authorization: Bearer your_provider_secret" \
+  -H "X-Auth-User-ID: user_id"
+
+# Get session data
+curl -X GET https://api.example.com/content-session/get-data \
+  -H "Authorization: Bearer your_provider_secret" \
+  -H "X-Auth-User-ID: user_id" \
   -H "X-Content-Session-ID: session_id"
 ```
 
