@@ -1,0 +1,59 @@
+# ----------------------------------------------------------------
+# Plugin Configutation
+# ----------------------------------------------------------------
+plugins:
+  # Configuration for the audio generator plugin
+  audio_generator:
+    enabled: false
+    clients:
+      audio_generator_client:
+        audio_generator_base_url:
+
+    # Function configurations for the audio generator
+    functions:
+      - function_id: generate_a_song
+        description: >
+          If the user asks to generate (watch for synonyms like make or remix) a song,
+          call this function. The song to generate should be described in the prompt;
+          if it isn't, use general_query to offer the user help on how to describe a song
+          using different genres as a basis.
+        hint: Generate a song
+        query: Generate a song {{input_suggestion}}.
+        stream: false
+
+  # Configuration for the image generator plugin
+  image_generator:
+    enabled: false
+    clients:
+      apiframe:
+        apiframe_base_url: https://api.apiframe.pro
+
+    # Function configurations for the image generator
+    functions:
+      - function_id: generate_an_image
+        description: >
+          If the user asks to remix (watch for synonyms) an image, call this function.
+          The image to remix must always be in the selectedImages object of the current
+          request; if it isn't, use general_query to offer the user help on how to select
+          an image. They can select images by finding an image with a small plus icon
+          over it, and clicking on that icon. They may provide a short description of
+          the new image in the input box and then click on the send icon. The new prompt
+          should be a new version of the original image, based on the user's input;
+          it's being sent to a generative AI model to create a new image, so be helpful
+          and craft the new prompt accordingly by being descriptive and specific about
+          the new image. Never include a URL in your prompt. Images for remixing can be 
+          found on the main page of the website, or if images have been generated already 
+          they can also be found in the current chat window.
+        hint: Remix an image
+        query: Create an image that is {{description}}, but {{modification}}.
+        stream: false
+      - function_id: describe_an_image
+        description: >
+          If the user asks to describe (watch for synonyms) an image, we will call this
+          function. To do this they must select an image first. They can select images
+          by finding an image with a small plus icon over it, and clicking on that icon.
+          This doesn't provide details about the image, but rather a description of
+          the image itself.
+        hint: Describe an image
+        query: Describe this image.
+        stream: false

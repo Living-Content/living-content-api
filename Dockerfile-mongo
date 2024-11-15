@@ -1,0 +1,33 @@
+# Use the official MongoDB image as the base
+FROM mongo:latest
+
+# Set the working directory
+WORKDIR /living-content-mongo
+
+# Install Python and required packages
+RUN apt-get update && \
+  apt-get install -y python3 python3-pip python3-venv curl ca-certificates && \
+  python3 -m venv /venv && \
+  /venv/bin/pip install --upgrade pip && \
+  /venv/bin/pip install pymongo python-dotenv pyyaml
+
+COPY .ssl/ca/ca.crt /usr/local/share/ca-certificates/ca.crt
+RUN update-ca-certificates
+
+# Add this line to activate the virtual environment later in the Dockerfile
+ENV PATH="/venv/bin:$PATH"
+
+# Copy initialization scripts
+COPY scripts/mongo/mongo-db_setup.py /living-content-mongo/mongo-db_setup.py
+COPY scripts/mongo/mongo-create_users.sh /living-content-mongo/mongo-create_users.sh
+COPY scripts/mongo/mongo-entrypoint.sh /living-content-mongo/mongo-entrypoint.sh
+
+# CHMOD initialization scripts
+RUN chmod +x /living-content-mongo/mongo-db_setup.py
+RUN chmod +x /living-content-mongo/mongo-create_users.sh
+RUN chmod +x /living-content-mongo/mongo-entrypoint.sh
+
+# Ensure pip cache directory is writable
+ENV PIP_CACHE_DIR=/tmp/.cache/pip
+
+ENTRYPOINT ["/living-content-mongo/mongo-entrypoint.sh"]

@@ -1,0 +1,18 @@
+# Dockerfile for Redis
+FROM redis:latest
+
+WORKDIR /living-content-redis
+
+RUN apt-get update && \
+  apt-get install -y curl ca-certificates
+
+COPY .ssl/ca/ca.crt /usr/local/share/ca-certificates/ca.crt
+RUN update-ca-certificates
+
+# Copy initialization scripts
+COPY scripts/redis/redis-entrypoint.sh /living-content-redis/redis-entrypoint.sh
+
+# CHMOD initialization scripts
+RUN chmod +x /living-content-redis/redis-entrypoint.sh
+
+ENTRYPOINT ["/living-content-redis/redis-entrypoint.sh"]

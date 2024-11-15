@@ -1,0 +1,9 @@
+# ----------------------------------------------------------------
+# EQTY SDK
+# ----------------------------------------------------------------
+eqty:
+  trusted_host_domain: eqty-pypi.westus2.cloudapp.azure.com
+  pre_signed_statement_dir: ./pre-signed_statements
+  lineage_explorer_url:
+  aws_s3_bucket:
+  aws_region:

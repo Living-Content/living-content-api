@@ -1,0 +1,148 @@
+name: ${NAMESPACE}-${PROJECT_NAME}
+services:
+  mongo:
+    networks:
+      app_net:
+        aliases:
+          - ${PROJECT_NAME}-mongo
+    container_name: '${NAMESPACE}-${PROJECT_NAME}-mongo'
+    build:
+      context: .
+      dockerfile: Dockerfile-mongo
+    image: ${NAMESPACE}-${PROJECT_NAME}-mongo:${ENV}
+    ports:
+      - '${MONGO_PORT}:${MONGO_PORT}'
+    volumes:
+      - mongo-db:/data/db
+      - mongo-config:/data/configdb
+      - mongo-logs:/living-content-mongo/logs
+      - ssl-ca:/living-content-mongo/.ssl/ca
+      - ssl-shared:/living-content-mongo/.ssl/shared
+      - secrets-files:/living-content-mongo/secrets:ro
+    environment:
+      - ENV=${ENV}
+      - MONGO_PORT=${MONGO_PORT}
+      - MONGO_HOST=${MONGO_HOST}
+      - MONGO_DB_NAME=${MONGO_DB_NAME}
+      - SHARED_SSL_PEM=${SHARED_SSL_PEM}
+      - SHARED_SSL_KEY=${SHARED_SSL_KEY}
+      - SHARED_SSL_CRT=${SHARED_SSL_CRT}
+      - SSL_CA_CRT=${SSL_CA_CRT}
+
+  redis:
+    networks:
+      app_net:
+        aliases:
+          - ${PROJECT_NAME}-redis
+    container_name: '${NAMESPACE}-${PROJECT_NAME}-redis'
+    build:
+      context: .
+      dockerfile: Dockerfile-redis
+    image: ${NAMESPACE}-${PROJECT_NAME}-redis:${ENV}
+    ports:
+      - '${REDIS_PORT}:${REDIS_PORT}'
+    volumes:
+      - redis-db:/data
+      - ssl-ca:/living-content-redis/.ssl/ca
+      - ssl-shared:/living-content-redis/.ssl/shared
+      - secrets-files:/living-content-redis/secrets:ro
+    environment:
+      - ENV=${ENV}
+      - SHARED_SSL_PEM=${SHARED_SSL_PEM}
+      - SHARED_SSL_KEY=${SHARED_SSL_KEY}
+      - SHARED_SSL_CRT=${SHARED_SSL_CRT}
+      - SSL_CA_CRT=${SSL_CA_CRT}
+
+  api:
+    networks:
+      app_net:
+        aliases:
+          - ${PROJECT_NAME}-api
+    container_name: '${NAMESPACE}-${PROJECT_NAME}-api'
+    environment:
+      - ENV=${ENV}
+      - WORKERS=${WORKERS}
+      - API_SSL_PEM=${API_SSL_PEM}
+      - API_SSL_KEY=${API_SSL_KEY}
+      - SHARED_SSL_PEM=${SHARED_SSL_PEM}
+      - SHARED_SSL_KEY=${SHARED_SSL_KEY}
+      - SHARED_SSL_CRT=${SHARED_SSL_CRT}
+    build:
+      context: .
+      dockerfile: Dockerfile-api
+      args:
+        - ENV=${ENV}
+        - EQTY_TRUSTED_HOST_DOMAIN=${EQTY_TRUSTED_HOST_DOMAIN}
+        - EQTY_TRUSTED_HOST_USERNAME=${EQTY_TRUSTED_HOST_USERNAME}
+        - EQTY_TRUSTED_HOST_PASSWORD=${EQTY_TRUSTED_HOST_PASSWORD}
+
+    image: ${NAMESPACE}-${PROJECT_NAME}-api:${ENV}
+    ports:
+      - '${API_PORT}:${API_PORT}'
+    volumes:
+      - api-logs:/living-content-api/logs
+      - api-config:/living-content-api/config/app
+      - api-logging-config:/living-content-api/config/logging
+      - ssl-ca:/living-content-api/.ssl/ca
+      - ssl-api:/living-content-api/.ssl/api
+      - ssl-shared:/living-content-api/.ssl/shared
+      - secrets-files:/living-content-api/secrets:ro
+    depends_on:
+      - mongo
+      - redis
+
+networks:
+  app_net:
+    driver: bridge
+
+volumes:
+  api-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+  api-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config/${ENV}/app
+  api-logging-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config/${ENV}/logging
+  redis-db:
+    driver: local
+  mongo-db:
+    driver: local
+  mongo-logs:
+    driver: local
+  mongo-config:
+    driver: local
+  ssl-api:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./.ssl/${ENV}/api
+  ssl-shared:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./.ssl/${ENV}/shared
+  ssl-ca:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./.ssl/ca
+  secrets-files:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./secrets/${ENV}/files

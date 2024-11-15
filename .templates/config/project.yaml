@@ -1,0 +1,6 @@
+# ----------------------------------------------------------------
+# Project definitions
+# ----------------------------------------------------------------
+project:
+  namespace: living-content
+  name: my-living-content-project

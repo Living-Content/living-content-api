@@ -1,0 +1,6 @@
+{
+  "cid": "bafkr4iaowue7zytv47csuim6ntseh72i65sarttooq5663pfzie3k347ea",
+  "name": "generate_image",
+  "description": "Code for generating a new image using an approved function and asset pair",
+  "artist_authorization": "I authorize the use of this approved function for PROJECT_ID. Digital assets generated with this code, using approved assets for this projects, would be deemed authentic."
+}

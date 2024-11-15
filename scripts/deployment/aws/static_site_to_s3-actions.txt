@@ -1,0 +1,105 @@
+
+aws s3api create-bucket --bucket {project_name}{-environment}.livingcontent.co --region us-east-1
+
+aws s3 website s3://{project_name}{-environment}.livingcontent.co/ --index-document index.html --error-document error.html
+
+aws s3api put-bucket-public-access-block \
+    --bucket {project_name}{-environment}.livingcontent.co \
+    --public-access-block-configuration BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false
+
+aws s3api put-bucket-policy --bucket {project_name}{-environment}.livingcontent.co --policy '{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowCloudFrontServicePrincipalReadOnly",
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "cloudfront.amazonaws.com"
+          },
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::{project_name}{-environment}.livingcontent.co/*",
+          "Condition": {
+              "StringEquals": {
+                  "AWS:SourceArn": "{cloudfront_arn}"
+              }
+          }
+      }
+  ]
+}'
+
+aws route53 list-hosted-zones
+
+aws route53 change-resource-record-sets --hosted-zone-id Z03006241A4UIKG49ZE1C --change-batch '{
+  "Comment": "Create alias record for {project_name} {environment}",
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "{project_name}{-environment}.livingcontent.co",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z3AQBSTGFYJSTF",
+          "DNSName": "s3-website-us-east-1.amazonaws.com",
+          "EvaluateTargetHealth": false
+        }
+      }
+    }
+  ]
+}'
+
+./deploy-to-s3.sh --bucket {project_name}{-environment}.livingcontent.co
+
+> /Users/greg/Documents/Dev/EQTY/living-content-api/scripts/deployment/aws/deploy-to-s3.sh --bucket {project_name}{-environment}.livingcontent.co
+
+aws acm request-certificate \
+  --region us-east-1 \
+  --domain-name "{project_name}{-environment}.livingcontent.co" \
+  --validation-method DNS
+
+>> SAVE THE ARN FOR USE BELOW
+{
+    "CertificateArn": "arn:aws:acm:us-west-1:123456789012:certificate/d69266d9-7df5-4bec-81ca-12345ab67890"
+}
+
+aws cloudfront create-distribution --distribution-config '{
+    "CallerReference": "unique-reference-string",
+    "Origins": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "Id": "S3-{project_name}{-environment}.livingcontent.co",
+                "DomainName": "{project_name}{-environment}.livingcontent.co.s3.amazonaws.com",
+                "S3OriginConfig": {
+                    "OriginAccessIdentity": ""
+                }
+            }
+        ]
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "S3-{project_name}{-environment}.livingcontent.co",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"]
+        },
+        "ForwardedValues": {
+            "QueryString": false,
+            "Cookies": {
+                "Forward": "none"
+            }
+        },
+        "MinTTL": 0
+    },
+    "Comment": "{project_name} {environment} site with HTTPS redirection",
+    "Enabled": true,
+    "ViewerCertificate": {
+        "ACMCertificateArn":  "{certificate_arn}",
+        "SSLSupportMethod": "sni-only",
+        "MinimumProtocolVersion": "TLSv1.2_2018"
+    }
+}'
+
+---
+
+Invalidate Cloudfront:
+aws cloudfront create-invalidation --distribution-id {distribution_id} --paths "/*"
