@@ -21,7 +21,7 @@ source venv/bin/activate
 Obtain EQTY credentials from <hello@livingcontent.co>.
 
 ```bash
-pip install --no-cache-dir -r /living-content-api/requirements/requirements.txt \
+pip install --no-cache-dir -r requirements/requirements.txt \
   --extra-index-url http://{EQTY_TRUSTED_HOST_USERNAME}:{EQTY_TRUSTED_HOST_PASSWORD}@{EQTY_TRUSTED_HOST_DOMAIN}/simple/ \
   --trusted-host {EQTY_TRUSTED_HOST_DOMAIN} \
 ```
