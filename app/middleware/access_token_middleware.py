@@ -1,184 +1,130 @@
-from typing import Callable, Awaitable, List, Dict, Any
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 import logging
 
 
 class AccessTokenMiddleware(BaseHTTPMiddleware):
     """
-    Middleware for handling access token authentication and CORS in FastAPI applications.
+    Middleware for handling authentication and authorization in FastAPI applications.
 
-    This middleware validates requests using either user access tokens or auth provider secrets.
-    It handles CORS preflight requests and adds appropriate CORS headers to responses.
-    Paths excluded from authentication are configured via ingress.excluded_paths config.
+    This middleware validates requests using either:
+    1. A user access token authentication scheme
+    2. An auth provider authentication scheme
 
-    Attributes:
-        logger (logging.Logger): Logger instance for debugging and monitoring
-        excluded_paths (List[str]): List of URL paths that bypass authentication, loaded from config
+    It also handles CORS (Cross-Origin Resource Sharing) headers and preflight requests.
 
-    Dependencies:
-        - Requires a configured user_manager in app.state
-        - Requires config with ingress.allowed_origins and ingress.excluded_paths in app.state
-        - Requires secrets configuration in app.state
+    The middleware expects certain configuration and state to be present in the FastAPI app:
+    - app.state.user_manager: Manager for user-related operations
+    - app.state.config: Application configuration
+    - app.state.secrets: Application secrets
     """
 
-    def __init__(self, app: Any) -> None:
+    def __init__(self, app):
         """
-        Initialize the middleware with application and configuration.
+        Initialize the middleware.
 
         Args:
             app: The FastAPI application instance
-
-        Note:
-            Expects app.state.config to contain:
-            {
-                "ingress": {
-                    "allowed_origins": List[str],
-                    "excluded_paths": List[str]
-                }
-            }
-
-            This is initially set in /config/ingress.yaml.
         """
         super().__init__(app)
-        self.logger: logging.Logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
         self.logger.debug("AccessTokenMiddleware initialized")
 
-        # Load excluded paths from config during initialization
-        self.excluded_paths: List[str] = []
-
-        # We'll load the actual paths in the dispatch method since
-        # app.state.config might not be available during initialization
-
-    async def dispatch(
-        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next):
         """
-        Process incoming requests for authentication and CORS handling.
+        Process incoming requests for authentication and authorization.
 
         Args:
-            request: The incoming HTTP request
-            call_next: Callable to process the next middleware/route handler
+            request (Request): The incoming request
+            call_next: The next middleware or route handler in the chain
 
         Returns:
-            Response: The HTTP response, either from the next handler or an error response
+            Response: The response from the next handler or an error response
 
-        Authentication can succeed via two methods:
-        1. User access token validation
-        2. Auth provider secret validation
+        Authentication can be performed in two ways:
+        1. Using X-User-ID header with Bearer token
+        2. Using X-Auth-Provider and X-Auth-User-ID headers with provider secret
         """
-        # Get managers and config from app.state
+        # Get managers from app.state
         user_manager = request.app.state.user_manager
         config = request.app.state.config
         secrets = request.app.state.secrets
 
-        # Load configuration
-        allowed_origins: List[str] = config["ingress"]["allowed_origins"]
-        self.excluded_paths = config["ingress"]["excluded_paths"]
+        allowed_origins = config["ingress"]["allowed_origins"]
+        excluded_paths = config["ingress"]["excluded_paths"]
 
-        if request.url.path in self.excluded_paths:
+        # Skip authentication for excluded paths
+        if request.url.path in excluded_paths:
             response = await call_next(request)
             self.add_cors_headers(request, response, allowed_origins)
             return response
 
-    # Auth handlers
+        # Handle CORS preflight requests
+        if request.method == "OPTIONS":
+            return self.handle_cors_preflight(request, allowed_origins)
 
-    async def _handle_user_token_auth(
-        self,
-        request: Request,
-        authorization: str,
-        user_id: str,
-        user_manager: Any,
-        call_next: Callable[[Request], Awaitable[Response]],
-        allowed_origins: List[str],
-    ) -> Response:
+        # Extract authentication headers
+        user_id = request.headers.get("X-User-ID")
+        auth_provider = request.headers.get("X-Auth-Provider")
+        auth_provider_user_id = request.headers.get("X-Auth-User-ID")
+        authorization = request.headers.get("Authorization")
+
+        self.logger.debug(f"Request Headers: {request.headers}")
+
+        if authorization and authorization.startswith("Bearer "):
+            # Handle user access token authentication
+            if user_id:
+                access_token = authorization.split(" ")[1]
+                user = await user_manager.get_user_data(user_id)
+                if user and user["accessToken"] == access_token:
+                    request.state.user_id = user_id
+                    request.state.access_token = access_token
+                    response = await call_next(request)
+                    self.add_cors_headers(request, response, allowed_origins)
+                    return response
+                return self.invalid_access_token_response(request, allowed_origins)
+
+            # Handle auth provider authentication
+            elif auth_provider_user_id and auth_provider:
+                auth_provider_secret = authorization.split(" ")[1]
+                auth_provider_key = f"auth-providers_{auth_provider}"
+
+                if secrets.get(auth_provider_key) == auth_provider_secret:
+                    user = await user_manager.get_user_data_by_auth_provider(
+                        auth_provider, auth_provider_user_id
+                    )
+
+                    if user:
+                        request.state.auth_provider = user.get("authProvider")
+                        request.state.user_id = user.get("_id")
+                        request.state.access_token = user.get("accessToken")
+                        self.logger.debug(
+                            f"Auth provider: {request.state.auth_provider}"
+                        )
+                        self.logger.debug(f"User id: {request.state.user_id}")
+                        self.logger.debug(f"Access token: {request.state.access_token}")
+                        response = await call_next(request)
+                        self.add_cors_headers(request, response, allowed_origins)
+                        return response
+                    return self.invalid_auth_provider_user(request, allowed_origins)
+                return self.invalid_auth_provider_secret_response(
+                    request, allowed_origins
+                )
+
+        # Case: Missing or invalid authorization
+        return self.missing_authorization_response(request, allowed_origins)
+
+    def handle_cors_preflight(self, request: Request, allowed_origins):
         """
-        Handle authentication using user access token.
+        Handle CORS preflight requests.
 
         Args:
-            request: The incoming HTTP request
-            authorization: The Authorization header value
-            user_id: The user ID from X-User-ID header
-            user_manager: The user manager instance
-            call_next: The next middleware/route handler
-            allowed_origins: List of allowed CORS origins
+            request (Request): The incoming request
+            allowed_origins (list): List of allowed origins
 
         Returns:
-            Response: Either the next handler's response or an error response
-        """
-        access_token = authorization.split(" ")[1]
-        user = await user_manager.get_user_data(user_id)
-        if user and user["accessToken"] == access_token:
-            request.state.user_id = user_id
-            request.state.access_token = access_token
-            response = await call_next(request)
-            self.add_cors_headers(request, response, allowed_origins)
-            return response
-        return self.invalid_access_token_response(request, allowed_origins)
-
-    async def _handle_provider_auth(
-        self,
-        request: Request,
-        authorization: str,
-        auth_provider: str,
-        auth_provider_user_id: str,
-        user_manager: Any,
-        secrets: Dict[str, str],
-        call_next: Callable[[Request], Awaitable[Response]],
-        allowed_origins: List[str],
-    ) -> Response:
-        """
-        Handle authentication using auth provider secret.
-
-        Args:
-            request: The incoming HTTP request
-            authorization: The Authorization header value
-            auth_provider: The auth provider name
-            auth_provider_user_id: The auth provider's user ID
-            user_manager: The user manager instance
-            secrets: The secrets configuration
-            call_next: The next middleware/route handler
-            allowed_origins: List of allowed CORS origins
-
-        Returns:
-            Response: Either the next handler's response or an error response
-        """
-        auth_provider_secret = authorization.split(" ")[1]
-        auth_provider_key = f"auth-providers_{auth_provider}"
-
-        if secrets.get(auth_provider_key) == auth_provider_secret:
-            user = await user_manager.get_user_data_by_auth_provider(
-                auth_provider, auth_provider_user_id
-            )
-
-            if user:
-                request.state.auth_provider = user.get("authProvider")
-                request.state.user_id = user.get("_id")
-                request.state.access_token = user.get("accessToken")
-                self.logger.debug(f"Auth provider: {request.state.auth_provider}")
-                self.logger.debug(f"User id: {request.state.user_id}")
-                self.logger.debug(f"Access token: {request.state.access_token}")
-                response = await call_next(request)
-                self.add_cors_headers(request, response, allowed_origins)
-                return response
-            return self.invalid_auth_provider_user(request, allowed_origins)
-        return self.invalid_auth_provider_secret_response(request, allowed_origins)
-
-    # CORS preflight
-
-    def handle_cors_preflight(
-        self, request: Request, allowed_origins: List[str]
-    ) -> JSONResponse:
-        """
-        Handle CORS preflight (OPTIONS) requests.
-
-        Args:
-            request: The incoming HTTP request
-            allowed_origins: List of allowed CORS origins
-
-        Returns:
-            JSONResponse: A response with appropriate CORS headers
+            JSONResponse: Response for the preflight request
         """
         origin = request.headers.get("origin")
         if origin in allowed_origins:
@@ -199,25 +145,24 @@ class AccessTokenMiddleware(BaseHTTPMiddleware):
                 }
             )
             return response
-        return JSONResponse(
-            content={
-                "status": "error",
-                "data": "cors_policy_not_met",
-                "message": "CORS policy not met",
-            },
-            status_code=403,
-        )
+        else:
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "data": "cors_policy_not_met",
+                    "message": "CORS policy not met",
+                },
+                status_code=403,
+            )
 
-    def add_cors_headers(
-        self, request: Request, response: Response, allowed_origins: List[str]
-    ) -> None:
+    def add_cors_headers(self, request: Request, response, allowed_origins):
         """
-        Add CORS headers to the response if origin is allowed.
+        Add CORS headers to the response if the origin is allowed.
 
         Args:
-            request: The incoming HTTP request
-            response: The response to add headers to
-            allowed_origins: List of allowed CORS origins
+            request (Request): The incoming request
+            response: The response object
+            allowed_origins (list): List of allowed origins
         """
         origin = request.headers.get("origin")
         if origin in allowed_origins:
@@ -228,20 +173,16 @@ class AccessTokenMiddleware(BaseHTTPMiddleware):
                 }
             )
 
-    # Error respones
-
-    def invalid_access_token_response(
-        self, request: Request, allowed_origins: List[str]
-    ) -> JSONResponse:
+    def invalid_access_token_response(self, request, allowed_origins):
         """
-        Create response for invalid access token.
+        Generate response for invalid access token.
 
         Args:
-            request: The incoming HTTP request
-            allowed_origins: List of allowed CORS origins
+            request (Request): The incoming request
+            allowed_origins (list): List of allowed origins
 
         Returns:
-            JSONResponse: Error response with CORS headers
+            JSONResponse: Error response for invalid access token
         """
         self.logger.warning("Invalid access token.")
         response = JSONResponse(
@@ -255,18 +196,16 @@ class AccessTokenMiddleware(BaseHTTPMiddleware):
         self.add_cors_headers(request, response, allowed_origins)
         return response
 
-    def invalid_auth_provider_user(
-        self, request: Request, allowed_origins: List[str]
-    ) -> JSONResponse:
+    def invalid_auth_provider_user(self, request, allowed_origins):
         """
-        Create response for invalid auth provider user.
+        Generate response for invalid auth provider user.
 
         Args:
-            request: The incoming HTTP request
-            allowed_origins: List of allowed CORS origins
+            request (Request): The incoming request
+            allowed_origins (list): List of allowed origins
 
         Returns:
-            JSONResponse: Error response with CORS headers
+            JSONResponse: Error response for invalid auth provider user
         """
         self.logger.warning("Invalid auth provider user.")
         response = JSONResponse(
@@ -280,18 +219,16 @@ class AccessTokenMiddleware(BaseHTTPMiddleware):
         self.add_cors_headers(request, response, allowed_origins)
         return response
 
-    def invalid_auth_provider_secret_response(
-        self, request: Request, allowed_origins: List[str]
-    ) -> JSONResponse:
+    def invalid_auth_provider_secret_response(self, request, allowed_origins):
         """
-        Create response for invalid auth provider secret.
+        Generate response for invalid auth provider secret.
 
         Args:
-            request: The incoming HTTP request
-            allowed_origins: List of allowed CORS origins
+            request (Request): The incoming request
+            allowed_origins (list): List of allowed origins
 
         Returns:
-            JSONResponse: Error response with CORS headers
+            JSONResponse: Error response for invalid auth provider secret
         """
         self.logger.warning("Invalid auth provider secret.")
         response = JSONResponse(
@@ -305,18 +242,16 @@ class AccessTokenMiddleware(BaseHTTPMiddleware):
         self.add_cors_headers(request, response, allowed_origins)
         return response
 
-    def missing_authorization_response(
-        self, request: Request, allowed_origins: List[str]
-    ) -> JSONResponse:
+    def missing_authorization_response(self, request, allowed_origins):
         """
-        Create response for missing authorization headers.
+        Generate response for missing authorization headers.
 
         Args:
-            request: The incoming HTTP request
-            allowed_origins: List of allowed CORS origins
+            request (Request): The incoming request
+            allowed_origins (list): List of allowed origins
 
         Returns:
-            JSONResponse: Error response with CORS headers
+            JSONResponse: Error response for missing authorization headers
         """
         self.logger.warning("Missing authorization headers.")
         response = JSONResponse(
