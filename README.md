@@ -30,20 +30,30 @@ A Dockerized FastAPI application that enables interaction with various Living Co
    cd <repository_directory>
    ```
 
-2. Set up the environment:
+2. Install requirements
+
+   Obtain EQTY credentials from <hello@livingcontent.co>.
+
+   ```bash
+   pip install --no-cache-dir -r requirements/requirements.txt \
+     --extra-index-url http://{EQTY_TRUSTED_HOST_USERNAME}:{EQTY_TRUSTED_HOST_PASSWORD}@{EQTY_TRUSTED_HOST_DOMAIN}/simple/ \
+     --trusted-host {EQTY_TRUSTED_HOST_DOMAIN} \
+   ```
+
+3. Set up the environment:
 
    ```bash
    ./lc.sh env:set --env=development
    ./lc.sh init:all
    ```
 
-3. Generate SSL certificates:
+4. Generate SSL certificates:
 
    ```bash
    ./lc.sh ssl:generate
    ```
 
-4. Start the development server:
+5. Start the development server:
 
    ```bash
    ./lc.sh docker:build

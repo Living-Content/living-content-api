@@ -2,59 +2,84 @@
 
 This guide explains the three ways to interact with the Living Content API:
 
-1. Direct API Access (API Key only)
-2. Authentication Provider Integration
-3. Direct User Management
+1. Managed API Access
+2. Authentication Provider API Access
+3. Direct API Access
 
 ## Table of Contents
 
 - [API Authentication and Integration Guide](#api-authentication-and-integration-guide)
   - [Table of Contents](#table-of-contents)
-  - [Simple API Access](#simple-api-access)
-    - [Setup](#setup)
-    - [Making Requests](#making-requests)
-  - [Authentication Provider Integration](#authentication-provider-integration)
+  - [Managed API Access](#managed-api-access)
+    - [User Creation Flow](#user-creation-flow)
+  - [Authentication Provider API Access](#authentication-provider-api-access)
     - [Provider Setup](#provider-setup)
     - [Authentication Flow](#authentication-flow)
-  - [Direct User Management](#direct-user-management)
-    - [User Creation Flow](#user-creation-flow)
+  - [Direct API Access](#direct-api-access)
+    - [Setup](#setup)
+    - [Making Requests](#making-requests)
   - [Content Sessions](#content-sessions)
   - [CORS Configuration](#cors-configuration)
     - [Server-to-Server Communication](#server-to-server-communication)
+  - [Available Endpoints](#available-endpoints)
   - [Error Handling](#error-handling)
     - [Common Status Codes](#common-status-codes)
 
-## Simple API Access
+## Managed API Access
 
-The simplest way to use the API is with an API key for direct endpoint access. This method:
+This uses Living Content's built-in user management system. This method:
 
-- Doesn't use Living Content's user management
-- Doesn't store session data
-- Requires you to manage your own users and sessions
-- Best for simple integrations or testing
+- Uses Living Content's user management
+- Stores user data and sessions
+- Scalable and performant
+- Works with the `living-content-ui` JavaScript framework
+- Best for most implementations
 
-### Setup
+### User Creation Flow
 
-1. Obtain an API key
-2. Store it in your secrets configuration:
+1. Generate User Creation Token
 
-```yaml
-api_key: "your_api_key"
-```
+   ```bash
+   curl -X POST https://api.example.com/access-token/user-creation-token/create
+   ```
 
-### Making Requests
+   Response:
 
-Include your API key in the `X-API-Key` header:
+   ```json
+   {
+       "userCreationToken": {
+           "accessToken": "generated_token"
+       }
+   }
+   ```
 
-```bash
-# Example query submission
-curl -X POST https://api.example.com/query/submit \
-  -H "X-API-Key: your_api_key" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "your query data"}'
-```
+2. Create User
 
-## Authentication Provider Integration
+   ```bash
+   curl -X POST https://api.example.com/user/create \
+     -H "Authorization: Bearer generated_token"
+   ```
+
+   Response:
+
+   ```json
+   {
+       "userId": "generated_user_id"
+   }
+   ```
+
+3. Using the API
+
+   ```bash
+   # All subsequent requests
+   curl -X POST https://api.example.com/query/submit \
+     -H "Authorization: Bearer access_token" \
+     -H "X-User-ID: user_id" \
+     -H "X-Content-Session-ID: session_id" \
+     -d '{"query": "your query"}'
+   ```
+
+## Authentication Provider API Access
 
 Auth providers can leverage Living Content's user and session management while using their own user IDs. This method:
 
@@ -123,61 +148,43 @@ auth-providers_your_provider_name: "your_provider_secret"
      -d '{"query": "your query"}'
    ```
 
-## Direct User Management
+## Direct API Access
 
-Use Living Content's built-in user management system. This method:
+The API can be used with an API key for direct endpoint access. This method:
 
-- Uses Living Content's user management
-- Stores user data and sessions
-- Best for applications without existing user management
+- Doesn't use Living Content's user management
+- Doesn't store session data
+- Requires you to manage your own users and sessions
+- Best for simple integrations or testing
 
-### User Creation Flow
+This is not currently a recommended best practice when using Living Content; as of 15-11-2024 it is partially implemented.
 
-1. Generate User Creation Token
+### Setup
 
-   ```bash
-   curl -X POST https://api.example.com/access-token/user-creation-token/create
-   ```
+1. Obtain an API key
+2. Store it in your secrets configuration:
 
-   Response:
+```yaml
+api_key: "your_api_key"
+```
 
-   ```json
-   {
-       "userCreationToken": {
-           "accessToken": "generated_token"
-       }
-   }
-   ```
+### Making Requests
 
-2. Create User
+Include your API key in the `X-API-Key` header:
 
-   ```bash
-   curl -X POST https://api.example.com/user/create \
-     -H "Authorization: Bearer generated_token"
-   ```
-
-   Response:
-
-   ```json
-   {
-       "userId": "generated_user_id"
-   }
-   ```
-
-3. Using the API
-
-   ```bash
-   # All subsequent requests
-   curl -X POST https://api.example.com/query/submit \
-     -H "Authorization: Bearer access_token" \
-     -H "X-User-ID: user_id" \
-     -H "X-Content-Session-ID: session_id" \
-     -d '{"query": "your query"}'
-   ```
+```bash
+# Example query submission
+curl -X POST https://api.example.com/query/submit \
+  -H "X-API-Key: your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "your query data"}'
+```
 
 ## Content Sessions
 
-Content sessions are required when using auth provider or direct user management:
+Not supported with Direct API Access.
+
+Content sessions are required when using Authentication Provider or Managed API Access:
 
 ```bash
 # Create session
@@ -191,8 +198,6 @@ curl -X GET https://api.example.com/content-session/get-data \
   -H "X-User-ID: user_id" \
   -H "X-Content-Session-ID: session_id"
 ```
-
-Not required for simple API access with API key.
 
 ## CORS Configuration
 
@@ -212,6 +217,10 @@ Bypass CORS checks by:
 - Using an API key
 - Including an x-webhook-secret
 - Not including an Origin header
+
+## Available Endpoints
+
+Coming soon (this will be maintained through a downlodable Postman environment).
 
 ## Error Handling
 
