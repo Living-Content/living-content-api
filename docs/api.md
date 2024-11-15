@@ -86,7 +86,7 @@ Auth providers can leverage Living Content's user and session management while u
 - Uses Living Content's session management
 - Stores user data and sessions
 - Maps your user IDs to Living Content's system
-- Best for full platform integration
+- Best for highly custom integrations when not using `living-content-ui`
 
 As an auth provider you will need to store the user's Content Session ID(s) and User Access Token.
 
@@ -161,12 +161,14 @@ This is not currently a recommended best practice when using Living Content; as 
 
 ### Setup
 
-1. Obtain an API key
-2. Store it in your secrets configuration:
+1. Obtain the API key stored in your secrets configuration:
 
 ```yaml
-api_key: "your_api_key"
+living_content:
+  api_key: "your_api_key"
 ```
+
+This key is us a UUID4 generated as part of the initial system setup; as of 15-11-2024, unless you are self-hosting, it must be requested from <hello@livingcontent.co>.
 
 ### Making Requests
 
