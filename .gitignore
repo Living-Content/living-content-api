@@ -176,21 +176,21 @@ cython_debug/
 # Ignore Docker volumes and containers
 volumes/
 containers/
-.DS_Store
-/.ssl
+.ssl/
 
 # Ignore sensitive Living Content data
-/config
-/deployment
-/secrets
-/logs
+config/
+deployment/
+secrets/
+logs/
 
 # Ignore generated SDK files
 scripts/signed-statements/**
-/eqty-sdk
+eqty-sdk/
 .direnv/
 .envrc
-/tools
+tools/
 
 # Other ignores
-/temp_config
+temp_config/
+.DS_Store
