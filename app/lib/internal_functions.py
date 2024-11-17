@@ -143,7 +143,7 @@ class InternalFunctions:
 
             collected_messages = []
             response = await self.function_handler.openai_client.client.chat.completions.create(
-                model=self.config["clients"]["openai"]["model"],
+                model=self.config["clients"]["openai"]["models"]["default"],
                 messages=user_query.messages,
                 max_tokens=int(self.config["clients"]["openai"]["max_tokens"]),
                 stream=True,
