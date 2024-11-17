@@ -220,7 +220,7 @@ class FunctionHandler:
         """
         try:
             response = await self.openai_client.client.chat.completions.create(
-                model=self.config["clients"]["openai"]["model"],
+                model=self.config["clients"]["openai"]["models"]["function_selection"],
                 messages=messages,
                 response_format={
                     "type": "json_schema",
@@ -229,6 +229,7 @@ class FunctionHandler:
                         "description": "Handles a request for a specific function",
                         "schema": {
                             "type": "object",
+                            "strict": True,
                             "properties": {
                                 "function_id": {
                                     "type": "string",
@@ -269,7 +270,7 @@ class FunctionHandler:
 
     @staticmethod
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=1, min=1, max=4),
         retry=retry_if_exception(ValueError),
         reraise=True,
