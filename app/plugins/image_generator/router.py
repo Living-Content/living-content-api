@@ -2,9 +2,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 import logging
-from app.plugins.image_generator.models import ApiframeResponse
-from app.plugins.image_generator.dependencies import get_image_generator_functions
-from app.plugins.image_generator.functions import ImageGeneratorFunctions
+
+# Local Plugin Imports
+from models import ApiframeResponse
+from dependencies import get_image_generator_functions
+from functions import ImageGeneratorFunctions
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

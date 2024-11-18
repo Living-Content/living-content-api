@@ -3,7 +3,9 @@
 import logging
 import uuid
 import re
-from app.plugins.image_generator.apiframe_client import Apiframe_Client
+
+# Local Plugin Imports
+from apiframe_client import Apiframe_Client
 
 
 class ApiframeRequestHandler:
