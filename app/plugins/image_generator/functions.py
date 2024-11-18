@@ -12,12 +12,14 @@ from fastapi import HTTPException
 from typing import Optional
 from app.lib import save_asset
 from app.models.query import QueryRequest
-from app.plugins.image_generator.models import TaskData
-from app.plugins.image_generator.apiframe_request_handler import ApiframeRequestHandler
-from app.plugins.image_generator.apiframe_response_handler import (
+from eqty.sdk.core import add_data_statement
+
+# Local Plugin Imports
+from models import TaskData
+from providers.apiframe.apiframe_request_handler import ApiframeRequestHandler
+from providers.apiframe.apiframe_response_handler import (
     ApiframeResponseHandler,
 )
-from eqty.sdk.core import add_data_statement
 
 
 class ImageGeneratorFunctions:

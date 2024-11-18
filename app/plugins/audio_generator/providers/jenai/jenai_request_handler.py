@@ -1,7 +1,9 @@
 # app/plugins/audio_generator/jenai_request_handler.py
 
 import logging
-from app.plugins.audio_generator.jenai_client import Jenai_Client
+
+# Local Plugin Imports
+from jenai_client import Jenai_Client
 
 
 class JenaiRequestHandler:

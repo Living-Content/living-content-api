@@ -7,8 +7,12 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from app.lib import save_asset
 from app.models.query import QueryRequest
-from app.plugins.audio_generator.jenai_request_handler import JenaiRequestHandler
 from app.models.query import Messages
+
+# Local Plugin Imports
+from providers.jenai.jenai_request_handler import (
+    JenaiRequestHandler,
+)
 
 
 class AudioGeneratorFunctions:
