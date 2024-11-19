@@ -2,6 +2,9 @@
 # Plugin Configutation
 # ----------------------------------------------------------------
 plugins:
+  # Configuration for the speech services plugin
+  speech_services:
+    enabled: false
   # Configuration for the audio generator plugin
   audio_generator:
     enabled: false

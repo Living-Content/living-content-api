@@ -1,124 +1,78 @@
 # app/plugins/speech_services/handlers/realtime_handler.py
 
 from typing import Dict, Any
+import aiohttp
+from typing import AsyncGenerator
 import logging
-from fastapi import Depends
-from app.clients.websocket_client import WebSocketClient
-from app.lib.dependencies import get_websocket_client, get_websocket_manager
-from app.lib.websocket_manager import WebSocketManager
+from fastapi import HTTPException
+from app.lib.dependencies import (
+    get_secrets,
+)
 
 
-class RealtimeHandler:
+class OpenAiRealtimeHandler:
     """
     Handles speech services using the main application's WebSocket infrastructure
     """
 
     def __init__(
         self,
-        websocket_manager: WebSocketManager = Depends(get_websocket_manager),
-        websocket_client: WebSocketClient = Depends(get_websocket_client),
     ):
-        self.websocket_manager = websocket_manager
-        self.websocket_client = websocket_client
+        self.secrets = get_secrets()
         self.logger = logging.getLogger(__name__)
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
 
-    async def handle_speech_start(
-        self, user_id: str, client_id: str, data: Dict[str, Any]
-    ):
-        """Handle start of speech session"""
-        session_id = f"speech_{user_id}_{client_id}"
+    async def stream_openai_tts(self, text: str) -> AsyncGenerator[bytes, None]:
+        """
+        Stream audio from OpenAI's TTS endpoint
+        """
+        openai_api_key = self.secrets.get("openai_api_key")
+        if not openai_api_key:
+            self.logger.error("Missing OpenAI API key.")
+            raise HTTPException(status_code=500, detail="API key not configured.")
 
-        # Initialize OpenAI session configuration
-        config_message = {
-            "type": "session.update",
-            "session": {
-                "voice": data.get("voice", "alloy"),
-                "turn_detection": {"mode": "server"},
-            },
+        openai_url = "https://api.openai.com/v1/audio/speech"
+        headers = {
+            "Authorization": f"Bearer {openai_api_key}",
+            "Content-Type": "application/json",
         }
+        payload = {"input": text, "voice": "alloy", "format": "mp3", "model": "tts-1"}
 
-        # Store session info
-        self.active_sessions[session_id] = {
-            "user_id": user_id,
-            "client_id": client_id,
-            "config": data,
-        }
+        self.logger.info(f"Starting TTS streaming for text: {text[:50]}...")
+        self.logger.debug(f"Payload: {payload}")
 
-        # Send through existing WebSocket infrastructure
-        await self.websocket_client.send_message(
-            user_id,
-            {
-                "type": "speech_session_started",
-                "session_id": session_id,
-                "config": config_message,
-            },
-        )
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as session:
+                async with session.post(
+                    openai_url, json=payload, headers=headers
+                ) as response:
+                    if response.status != 200:
+                        error_message = await response.text()
+                        self.logger.error(f"OpenAI API Error: {error_message}")
+                        raise HTTPException(
+                            status_code=response.status,
+                            detail=f"Error from OpenAI API: {error_message}",
+                        )
 
-    async def handle_text_input(
-        self, user_id: str, client_id: str, data: Dict[str, Any]
-    ):
-        """Handle text input for TTS"""
-        message = {
-            "type": "conversation.item.create",
-            "item": {
-                "type": "message",
-                "role": "user",
-                "content": [{"type": "input_text", "text": data["text"]}],
-            },
-        }
-
-        await self.websocket_client.send_message(user_id, message)
-
-        # Request response with both text and audio
-        await self.websocket_client.send_message(
-            user_id,
-            {"type": "response.create", "response": {"modalities": ["text", "audio"]}},
-        )
-
-    async def handle_audio_input(
-        self, user_id: str, client_id: str, audio_chunk: bytes
-    ):
-        """Handle audio input for STT"""
-        message = {
-            "type": "input_audio_buffer.append",
-            "input_audio": {
-                "format": "wav",  # Adjust based on your audio format
-                "chunk": audio_chunk,
-            },
-        }
-
-        await self.websocket_client.send_message(user_id, message)
-
-    async def handle_speech_end(
-        self, user_id: str, client_id: str, data: Dict[str, Any]
-    ):
-        """Handle end of speech session"""
-        session_id = f"speech_{user_id}_{client_id}"
-
-        if session_id in self.active_sessions:
-            # Cleanup session
-            session_info = self.active_sessions.pop(session_id)
-
-            # Notify client
-            await self.websocket_client.send_message(
-                user_id, {"type": "speech_session_ended", "session_id": session_id}
+                    async for chunk in response.content.iter_chunked(1024):
+                        try:
+                            yield chunk
+                        except Exception as chunk_error:
+                            self.logger.error(f"Error processing chunk: {chunk_error}")
+                            raise HTTPException(
+                                status_code=500, detail="Error streaming audio."
+                            )
+        except aiohttp.ClientError as network_error:
+            self.logger.error(f"Network error during TTS request: {network_error}")
+            raise HTTPException(
+                status_code=500,
+                detail="Network error occurred while accessing OpenAI TTS service.",
             )
-
-
-# Register the handlers with your WebSocket manager
-def init_speech_handlers(
-    websocket_manager: WebSocketManager = Depends(get_websocket_manager),
-):
-    realtime_handler = RealtimeHandler(websocket_manager)
-
-    # Register message handlers
-    handlers = {
-        "speech_start": realtime_handler.handle_speech_start,
-        "speech_text_input": realtime_handler.handle_text_input,
-        "speech_audio_input": realtime_handler.handle_audio_input,
-        "speech_end": realtime_handler.handle_speech_end,
-    }
-
-    for message_type, handler in handlers.items():
-        websocket_manager.register_message_handler(message_type, handler)
+        except Exception as general_error:
+            self.logger.error(f"Unexpected error during TTS streaming: {general_error}")
+            raise HTTPException(
+                status_code=500,
+                detail="An unexpected error occurred during TTS processing.",
+            )
