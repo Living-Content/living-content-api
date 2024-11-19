@@ -5,7 +5,7 @@ from typing import Dict, Any
 from app.models.query import QueryRequest
 
 
-class SpeechServiceFunctions:
+class SpeechServicesFunctions:
     """
     Main functions class for the Speech Services plugin
     """
