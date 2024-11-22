@@ -5,7 +5,6 @@ from app.lib.dependencies import get_ws_connection_manager, get_websocket_manage
 from app.lib.websocket_manager import WebSocketManager
 from app.lib.connection_manager import ConnectionManager
 import logging
-import json
 from starlette.websockets import WebSocketState
 
 router = APIRouter(tags=["Websocket"])

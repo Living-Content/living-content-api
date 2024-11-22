@@ -4,7 +4,6 @@ import logging
 import uuid
 from typing import Dict, Any
 from redis.exceptions import ConnectionError as RedisConnectionError
-from fastapi import WebSocketDisconnect
 
 
 class WebSocketClient:

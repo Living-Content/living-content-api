@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from app.models.query import QueryRequest, GetQueriesRequest
 from app.lib.query_handler import QueryHandler
-from app.lib.dependencies import get_secrets, get_query_handler, get_user_manager
+from app.lib.dependencies import get_secrets, get_query_handler
 from app.lib import save_asset
 import logging
 import traceback
@@ -52,7 +52,7 @@ async def receive_query_request(
         logging.error(f"HTTP Exception in endpoint: {e.status_code}: {e.detail}")
         raise e
     except Exception as e:
-        logging.error("Unexpected error submitting query:")
+        logging.error("Unexpected error submitting query:", e)
         logging.error(traceback.format_exc())  # Log the full traceback
         raise HTTPException(status_code=500, detail="An internal error occurred.")
 
