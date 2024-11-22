@@ -4,7 +4,7 @@ import eqty
 import logging
 import json
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional
 from app.lib import save_asset
 from app.models.query import QueryRequest
 from app.models.query import Messages

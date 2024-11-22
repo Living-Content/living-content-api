@@ -3,7 +3,6 @@ import argparse
 import re
 import secrets
 import string
-import yaml
 from uuid import uuid4
 from ruamel.yaml import YAML
 from ruamel.yaml.scalarstring import FoldedScalarString
@@ -248,7 +247,7 @@ def fold_long_strings(data, max_length=80):
 
 
 def copy_config_files(env, force):
-    src_folder = f"./.templates/config/"
+    src_folder = "./.templates/config/"
     config_folder = f"./config/{env}/app"
 
     if not os.path.exists(src_folder):
@@ -289,7 +288,7 @@ def copy_config_files(env, force):
 
 
 def copy_secrets_files(env, force):
-    src_file = f"./.templates/secrets.yaml"
+    src_file = "./.templates/secrets.yaml"
     dest_folder = f"./secrets/{env}/"
     dest_file = f"{dest_folder}secrets.yaml"
 

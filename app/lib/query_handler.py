@@ -42,8 +42,6 @@ class QueryHandler:
         try:
             # Check for function_id and determine if we need to select a function
             function_id = eqty_user_query.function_id
-            additional_data = eqty_user_query.additional_data
-            plugin_data = eqty_user_query.plugin_data
             logging.debug(f"Initial function_id: {function_id}")
             logging.debug(f"User query: {eqty_user_query}")
 

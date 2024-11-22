@@ -75,14 +75,14 @@ class ContentSessionManager:
                     content_session_data
                 )
             except Exception as e:
-                raise Exception(f"Failed to create content session in MongoDB")
+                raise Exception("Failed to create content session in MongoDB:", e)
 
             try:
                 await self.redis_ops.create_content_session_in_redis(
                     content_session_data
                 )
             except Exception as e:
-                raise Exception(f"Failed to create content session in Redis")
+                raise Exception("Failed to create content session in Redis:", e)
 
             try:
                 update_fields = {

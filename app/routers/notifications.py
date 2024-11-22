@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from app.models.notification import GetUnseenNotificationsRequest
 from app.lib.dependencies import get_http_notification_manager
 from app.lib.notification_manager import NotificationManager
 import logging

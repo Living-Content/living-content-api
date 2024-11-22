@@ -303,9 +303,9 @@ def docker_build(env, verbose=False, nocache=False, service=None, cleanup=True):
 
     # Define the default services if no specific service is provided
     all_services = [
-        f"api",
-        f"mongo",
-        f"redis",
+        "api",
+        "mongo",
+        "redis",
     ]
     services = [service] if service else all_services
 
@@ -457,11 +457,11 @@ def cert_generate(
     logger.info("Starting certificate generation process")
 
     if not env:
-        warning_msg = f"You must provide an environment to generate SSL certificates."
+        warning_msg = "You must provide an environment to generate SSL certificates."
         logger.warning(warning_msg)
         return
 
-    cert_dir = Path(f"./.ssl")
+    cert_dir = Path("./.ssl")
 
     ca_cert_path = cert_dir / "ca/ca.crt"
     ca_key_path = cert_dir / "ca/ca.key"

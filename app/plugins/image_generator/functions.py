@@ -111,7 +111,6 @@ class ImageGeneratorFunctions:
             if user_query.plugin_data
             else None
         )
-        additional_data = user_query.additional_data
         image_url, image_description, _ = (
             self.apiframe_request_handler.extract_image_info(selected_images)
         )
@@ -170,7 +169,6 @@ class ImageGeneratorFunctions:
         plugin_data: Optional[eqty.Asset] = None,
         image_asset: Optional[eqty.CID] = None,
     ):
-        additional_data = user_query.additional_data
         request_message = (
             user_query.messages[-1].content
             if user_query.messages
