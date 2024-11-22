@@ -123,9 +123,7 @@ class QueryHandler:
                             yield data
                     except HTTPException as http_exc:
                         # Send the HTTP error back to the client
-                        yield "\n\n" + "data: " + json.dumps(
-                            {"error": http_exc.detail}
-                        ) + "\n\n"
+                        yield "\n\n" + "data: An error occurred.\n\n"
                         raise http_exc  # This will stop the stream and send the error response
                     except Exception as e:
                         error_message = f"Unexpected error: {str(e)}"
