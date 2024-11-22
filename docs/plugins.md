@@ -5,7 +5,7 @@
 ### Image Generator
 
 - Path: `/image-generator`
-- Uses Midjourney for style transfers
+- Uses Midjourney for style transfers via APIFRAME
 - Supports image manipulation and generation
 
 ### Audio Generator
@@ -30,7 +30,6 @@ The system is designed to accommodate future integrations with:
 - Additional AI models
 - New processing capabilities
 - Extended functionality
-- Custom plugins
 
 ## Plugin Development
 
