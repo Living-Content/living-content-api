@@ -177,23 +177,46 @@ def create_env_configmap(env, config_dict):
 
 
 def validate_domain(domain):
-    """Ensure the domain is valid, does not contain a port number, and is not 'localhost'."""
+    """
+    Ensure the domain is valid, does not contain a port number, and is not 'localhost'.
+
+    Args:
+        domain: String representing a domain name, possibly with port number
+
+    Returns:
+        str: Valid domain name without port number
+        None: If domain is invalid
+    """
     # Remove port number if present
     domain = re.sub(r":\d+$", "", domain)
 
     # Ensure 'localhost' and similar values are removed
-    if domain in ["localhost", "localhost.localdomain"]:
+    if domain.lower() in ["localhost", "localhost.localdomain"]:
         print(f"Invalid domain (localhost): {domain}")
         return None
 
-    # Check if domain matches the required format (RFC 1123 subdomain)
-    if re.match(
-        r"^(([a-z0-9]+|[a-z0-9][-a-z0-9]*[a-z0-9])\.)+[a-z][-a-z0-9]*[a-z0-9]$", domain
-    ):
-        return domain
-    else:
+    # RFC 1123 compliant domain validation
+    pattern = (
+        r"^(?!-)"  # No leading hyphen
+        r"(?!.*--)"  # No consecutive hyphens
+        r"(?:[a-zA-Z0-9-]{1,63}"  # Label content: alphanumeric + single hyphens
+        r"(?<!-))"  # No trailing hyphen for each label
+        r"(?:\."  # Dot separator
+        r"(?!-)"  # No leading hyphen in next label
+        r"(?!.*--)"  # No consecutive hyphens in next label
+        r"(?:[a-zA-Z0-9-]{1,63}"
+        r"(?<!-)))*"  # Repeat for all labels
+        r"\.?"  # Optional trailing dot
+        r"(?!.*[0-9]$)"  # TLD must not be all numeric
+        r"[a-zA-Z0-9]+"  # TLD content
+        r"$"
+    )
+
+    if len(domain) > 253 or not re.match(pattern, domain, re.IGNORECASE):
         print(f"Invalid domain: {domain}")
         return None
+
+    return domain
 
 
 def process_managed_certificate(content, config_dict):
