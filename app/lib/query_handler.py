@@ -128,9 +128,7 @@ class QueryHandler:
                     except Exception as e:
                         error_message = f"Unexpected error: {str(e)}"
                         self._logger.error(error_message)
-                        yield "\n\n" + "data: " + json.dumps(
-                            {"error": error_message}
-                        ) + "\n\n"
+                        yield "\n\n" + "data: An error occurred\n\n"
                         raise HTTPException(status_code=500, detail=error_message)
                     finally:
                         eqty.generate_manifest("manifest.json", content_session_id)
