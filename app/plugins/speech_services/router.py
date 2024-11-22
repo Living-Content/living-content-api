@@ -1,10 +1,28 @@
-from fastapi import APIRouter, Depends
-from functions import RealtimeAPIHandler
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from .models import TTSRequest
+from .openai_realtime_handler import OpenAiRealtimeHandler
 
 router = APIRouter()
 
 
-@router.post("/speech-services/process-audio")
-async def process_audio(audio_stream: bytes, handler: RealtimeAPIHandler = Depends()):
-    async for chunk in handler.handle_audio_stream(audio_stream):
-        yield chunk
+@router.post("/speech-services/stream-tts")
+async def stream_tts(
+    request: TTSRequest,
+    handler: OpenAiRealtimeHandler = Depends(),
+):
+    """
+    Endpoint for streaming text-to-speech using OpenAI TTS
+    """
+    try:
+
+        async def audio_stream():
+            async for audio_chunk in handler.stream_openai_tts(request.text):
+                yield audio_chunk
+
+        return StreamingResponse(
+            audio_stream(),
+            media_type="audio/mpeg",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
