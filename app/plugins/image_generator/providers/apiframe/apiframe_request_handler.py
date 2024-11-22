@@ -42,9 +42,9 @@ class ApiframeRequestHandler:
         if messages and isinstance(messages, list) and len(messages) > 0:
             content = messages[0].content
             # Regular expression to find URLs
-            url_pattern = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+            url_pattern = r"https?://[^\s<>\"]+|www\.[^\s<>\"]+"
             # Replace URLs with an empty string
-            content_without_urls = re.sub(url_pattern, "", content)
+            content_without_urls = re.sub(url_pattern, "", content, flags=re.IGNORECASE)
             return content_without_urls
         return None
 
