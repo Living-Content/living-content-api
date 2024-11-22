@@ -8,18 +8,51 @@ A Dockerized FastAPI application that enables interaction with various Living Co
 
 ### Features
 
-- HTTP endpoints for OpenAI API interaction
-- OpenAI functions for contextual request execution
-- FastAPI-based development
-- Configurable prompts via POST requests
-- Plugin system for Midjourney and other models
+- Configurable queries
+- LLM-based function selection
+- User management
+- Session management
+- Authorization management
+- Direct API interaction
+- Managed API interaction
 - Fully Dockerized deployment
 
-### Core Components
+### Deployed Environments
 
-- API Server (`api`)
+- API (`api`)
 - MongoDB (`mongo`) for long-term storage
 - Redis (`redis`) for short-term storage
+
+### Plugins
+
+#### Generative Audio
+
+- JENAI client for audio creation and song extension
+
+#### Generative Imagery
+
+- Midjourney via APIFRAME client
+
+#### Plugins In Development
+
+- LLAMA client for General Queries (via LivePeer)
+- Flux.1 client for generative imagery (via LivePeer)
+
+### Query Handlers
+
+- OpenAI client
+
+#### Query Handlers In Development
+
+- LLAMA client (via LivePeer)
+
+### Function Handlers
+
+- OpenAI client
+
+#### Function Handlers In Development
+
+- LLAMA client (via LivePeer)
 
 ## Quick Start
 
@@ -135,8 +168,6 @@ Our project uses the following branch structure:
    - Include any necessary migration steps
 
 2. **Code Quality**
-   - Ensure all tests pass
-   - Maintain or improve code coverage
    - Follow code style guidelines
    - Remove debug statements and commented code
 
