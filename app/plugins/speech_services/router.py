@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from .models import TTSRequest
-from .openai_realtime_handler import OpenAiRealtimeHandler
+from .openai_tts_handler import OpenAiTtsHandler
 
 router = APIRouter()
 
@@ -9,7 +9,7 @@ router = APIRouter()
 @router.post("/speech-services/stream-tts")
 async def stream_tts(
     request: TTSRequest,
-    handler: OpenAiRealtimeHandler = Depends(),
+    handler: OpenAiTtsHandler = Depends(),
 ):
     """
     Endpoint for streaming text-to-speech using OpenAI TTS
