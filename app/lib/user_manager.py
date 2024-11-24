@@ -51,21 +51,27 @@ class UserManager:
             HTTPException: If an error occurs during user creation.
         """
         try:
+            # Check if user already exists
+            existing_user = await self.get_user_data(user_id)
+            if existing_user:
+                return user_id
+
             permissions_token = (
                 await self.permissions_token_manager.generate_permissions_token(user_id)
             )
-
             permissions_token_id = permissions_token["_id"]
-
             created_at = datetime.now(timezone.utc).isoformat()
 
-            # Generate user data, access token data, and permissions token data
             user_data = await generate_user_data(
                 user_id, access_token, permissions_token_id, created_at
             )
 
-            # Save data to MongoDB
-            await self.mongo_ops.create_user_in_mongo(user_data)
+            try:
+                await self.mongo_ops.create_user_in_mongo(user_data)
+            except Exception as e:
+                if "duplicate key error" in str(e).lower():
+                    return user_id
+                raise
 
             return user_id
         except RetryError as re:
@@ -83,9 +89,8 @@ class UserManager:
     async def create_user_with_auth_provider(
         self, auth_provider: str, auth_user_id: str, access_token: str
     ) -> str:
-        access_token, auth_provider, auth_user_id
         """
-        Create a new user with an auth provider and store the user, access token, and auth provider data in MongoDB.
+        Create a new user with an auth provider using atomic operations.
 
         Args:
             auth_provider (str): The authentication provider (e.g., "creative_passport").
@@ -99,19 +104,22 @@ class UserManager:
             HTTPException: If an error occurs during user creation.
         """
         try:
-            # Generate a new user ID
-            user_id = str(uuid4())
+            # First check if user exists
+            existing_user = await self.get_user_data_by_auth_provider(
+                auth_provider, auth_user_id
+            )
+            if existing_user:
+                return existing_user["_id"]
 
-            # Generate the permissions token
+            # If no existing user, create new one atomically
+            user_id = str(uuid4())
             permissions_token = (
                 await self.permissions_token_manager.generate_permissions_token(user_id)
             )
             permissions_token_id = permissions_token["_id"]
-
-            # Capture the current timestamp
             created_at = datetime.now(timezone.utc).isoformat()
 
-            # Generate user data, access token data, and permissions token data
+            # Prepare the user data
             user_data = await generate_user_data(
                 user_id,
                 access_token,
@@ -121,10 +129,21 @@ class UserManager:
                 auth_user_id,
             )
 
-            # Save the user data in MongoDB
-            await self.mongo_ops.create_user_in_mongo(user_data)
+            try:
+                await self.mongo_ops.create_user_in_mongo(user_data)
+            except Exception as e:
+                # Check if error was due to duplicate auth provider user
+                # This handles race condition where user was created between our check and create
+                if "duplicate key error" in str(e).lower():
+                    existing_user = await self.get_user_data_by_auth_provider(
+                        auth_provider, auth_user_id
+                    )
+                    if existing_user:
+                        return existing_user["_id"]
+                raise
 
             return user_id
+
         except RetryError as re:
             self.logger.error(
                 f"Retry failed during user creation: {re}\n{traceback.format_exc()}"
@@ -234,23 +253,19 @@ class UserManager:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     async def delete_user(self, user_id: str):
-        """
-        Delete user data and associated sessions for a given user ID.
-
-        Args:
-            user_id (str): The user ID.
-
-        Raises:
-            HTTPException: If an error occurs during user deletion.
-        """
         try:
-            # Delete user data from MongoDB
-            await self.mongo_ops.delete_user_from_mongo(user_id)
-            # Delete sessions associated with the user
-            await self.content_session_manager.delete_sessions_by_user(user_id)
+            async with await self.mongo_client.start_session() as session:
+                async with session.start_transaction():
+                    # Delete user and all related data atomically
+                    await self.mongo_ops.delete_user_from_mongo(
+                        user_id, session=session
+                    )
+                    await self.content_session_manager.delete_sessions_by_user(
+                        user_id, session=session
+                    )
         except Exception as e:
             self.logger.error(
-                f"Error deleting user {user_id}: {e}\n{traceback.format_exc()}"
+                f"Error in delete transaction: {e}\n{traceback.format_exc()}"
             )
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -276,11 +291,12 @@ class UserManager:
             user_creation_token_data = {"userId": user_id}
             user_creation_token_key = f"userCreationToken:{access_token}"
 
-            # Store the user creation token data in Redis and set an expiration time of 1 minute
+            # Change to atomic operation
             await self.redis_client.set(
-                user_creation_token_key, json.dumps(user_creation_token_data)
+                user_creation_token_key,
+                json.dumps(user_creation_token_data),
+                ex=60,  # Set and expire atomically
             )
-            await self.redis_client.expire(user_creation_token_key, 60)
 
             return {"userCreationToken": {"accessToken": access_token}}
         except Exception as e:
@@ -355,15 +371,26 @@ class UserManager:
         Raises:
             HTTPException: If the access token is invalid or an error occurs during validation.
         """
-        # Attempt to retrieve the access token from MongoDB
-        user_data = await self.mongo_ops.get_access_token_from_mongo(access_token_id)
+        lock_key = f"token_validation_lock:{user_id}:{access_token_id}"
+        try:
+            # Add short lock to prevent concurrent validations
+            lock_acquired = await self.redis_client.set(lock_key, "1", nx=True, ex=2)
+            if not lock_acquired:
+                raise HTTPException(
+                    status_code=429, detail="Token validation in progress"
+                )
 
-        # Check if user data was retrieved and matches the expected user ID
-        if user_data and user_data["_id"] == user_id:
+            user_data = await self.mongo_ops.get_access_token_from_mongo(
+                access_token_id
+            )
+
+            if not user_data or user_data["_id"] != user_id:
+                self.logger.info(f"Invalid access token ID: {access_token_id}")
+                raise HTTPException(status_code=403, detail="Invalid access token")
+
             return True
-        else:
-            self.logger.info(f"Invalid access token ID: {access_token_id}")
-            raise HTTPException(status_code=403, detail="Invalid access token")
+        finally:
+            await self.redis_client.delete(lock_key)
 
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
     async def regenerate_access_token(
@@ -384,7 +411,6 @@ class UserManager:
             HTTPException: If the user is not found or if an error occurs during regeneration.
         """
         try:
-            # Authenticate user by user_id or auth_provider and auth_user_id
             if user_id:
                 user_data = await self.get_user_data(user_id)
             elif auth_provider and auth_user_id:
@@ -399,11 +425,23 @@ class UserManager:
             if not user_data:
                 raise HTTPException(status_code=404, detail="User not found")
 
-            # Generate new access token
-            new_access_token = str(uuid4())
-            await self.update_user(user_data["_id"], {"accessToken": new_access_token})
+            # Add lock for thread safety
+            lock_key = f"token_regen_lock:{user_data['_id']}"
+            lock_acquired = await self.redis_client.set(lock_key, "1", nx=True, ex=5)
 
-            return {"userId": user_data["_id"], "accessToken": new_access_token}
+            if not lock_acquired:
+                raise HTTPException(
+                    status_code=429, detail="Token regeneration already in progress"
+                )
+
+            try:
+                new_access_token = str(uuid4())
+                await self.update_user(
+                    user_data["_id"], {"accessToken": new_access_token}
+                )
+                return {"userId": user_data["_id"], "accessToken": new_access_token}
+            finally:
+                await self.redis_client.delete(lock_key)
 
         except RetryError as re:
             self.logger.error(

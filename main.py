@@ -149,8 +149,7 @@ async def lifespan(app: FastAPI):
 
         # Initialize connection manager
         logging.info("Initializing ConnectionManager")
-        connection_manager = ConnectionManager()
-        await connection_manager.initialize_clients()
+        connection_manager = await ConnectionManager.create(app)
         app.state.connection_manager = connection_manager
         logging.info("ConnectionManager initialized")
 
