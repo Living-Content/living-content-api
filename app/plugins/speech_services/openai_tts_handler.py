@@ -10,7 +10,7 @@ from app.lib.dependencies import (
 )
 
 
-class OpenAiRealtimeHandler:
+class OpenAiTtsHandler:
     """
     Handles speech services using the main application's WebSocket infrastructure
     """
@@ -31,7 +31,7 @@ class OpenAiRealtimeHandler:
             self.logger.error("Missing OpenAI API key.")
             raise HTTPException(status_code=500, detail="API key not configured.")
 
-        openai_url = "https://api.openai.com/v1/audio/speech"
+        openai_tts_url = "https://api.openai.com/v1/audio/speech"
         headers = {
             "Authorization": f"Bearer {openai_api_key}",
             "Content-Type": "application/json",
@@ -46,7 +46,7 @@ class OpenAiRealtimeHandler:
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as session:
                 async with session.post(
-                    openai_url, json=payload, headers=headers
+                    openai_tts_url, json=payload, headers=headers
                 ) as response:
                     if response.status != 200:
                         error_message = await response.text()
