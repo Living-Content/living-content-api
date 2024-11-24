@@ -425,3 +425,34 @@ class WebSocketClient:
                     self._logger.error(
                         f"Error cleaning up connections for {user_id}: {e}"
                     )
+
+    async def close(self):
+        """Gracefully close WebSocketClient."""
+        # Cancel all active tasks
+        for task in self.user_listen_tasks.values():
+            try:
+                task.cancel()
+                await task  # Ensure tasks are fully cancelled
+            except asyncio.CancelledError:
+                pass
+
+        # Unsubscribe and close pubsub connections
+        for pubsub in self.pubsubs.values():
+            try:
+                await pubsub.close()
+            except Exception as e:
+                self._logger.error(f"Error closing pubsub: {e}")
+
+        # Clear active connections and internal states
+        active_connections_count = len(self.active_connections)
+        user_listen_tasks_count = len(self.user_listen_tasks)
+        pubsubs_count = len(self.pubsubs)
+
+        self.active_connections.clear()
+        self.user_listen_tasks.clear()
+        self.pubsubs.clear()
+
+        self._logger.info(
+            f"WebSocketClient closed successfully. Cleared {active_connections_count} active connections, "
+            f"{user_listen_tasks_count} tasks, and {pubsubs_count} pubsubs."
+        )
