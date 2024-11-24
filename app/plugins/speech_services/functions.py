@@ -1,8 +1,7 @@
-# speech_services/functions.py
-
 import logging
 from typing import Dict, Any
 from app.models.query import QueryRequest
+from app.lib.connection_manager import ConnectionManager
 
 
 class SpeechServicesFunctions:
@@ -15,7 +14,8 @@ class SpeechServicesFunctions:
         self.config = function_handler.config
         self.secrets = function_handler.secrets
         self._logger = logging.getLogger(__name__)
-        self.websocket_manager = function_handler.websocket_manager
+        self.connection_manager = ConnectionManager()
+        self.websocket_manager = self.connection_manager
         self.content_session_manager = function_handler.content_session_manager
         self.notification_manager = function_handler.notification_manager
         self.redis_ops = self.content_session_manager.redis_ops
@@ -30,9 +30,7 @@ class SpeechServicesFunctions:
     ):
         """Handle start of speech session"""
         session_id = f"speech_{user_id}_{client_id}"
-        websocket_client = (
-            await self.websocket_manager.connection_manager.get_websocket_client()
-        )
+        websocket_client = await self.connection_manager.get_websocket_client()
 
         # Initialize OpenAI session configuration
         config_message = {
@@ -78,9 +76,7 @@ class SpeechServicesFunctions:
         client_id: str,
     ):
         """Handle text input for TTS"""
-        websocket_client = (
-            await self.websocket_manager.connection_manager.get_websocket_client()
-        )
+        websocket_client = await self.connection_manager.get_websocket_client()
 
         message = {
             "type": "conversation.item.create",
@@ -107,9 +103,7 @@ class SpeechServicesFunctions:
         client_id: str,
     ):
         """Handle audio input for STT"""
-        websocket_client = (
-            await self.websocket_manager.connection_manager.get_websocket_client()
-        )
+        websocket_client = await self.connection_manager.get_websocket_client()
 
         # Extract audio data from plugin_data
         audio_chunk = user_query.plugin_data.get("audio_chunk")
@@ -137,9 +131,7 @@ class SpeechServicesFunctions:
         session_id = f"speech_{user_id}_{client_id}"
 
         if session_id in self.active_sessions:
-            websocket_client = (
-                await self.websocket_manager.connection_manager.get_websocket_client()
-            )
+            websocket_client = await self.connection_manager.get_websocket_client()
 
             # Cleanup session
             session_info = self.active_sessions.pop(session_id)

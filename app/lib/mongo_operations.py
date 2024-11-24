@@ -291,6 +291,7 @@ class MongoOperations:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     # Update operations
+
     async def update_content_session_in_mongo(
         self, user_id: str, content_session_id: str, new_data: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -300,23 +301,30 @@ class MongoOperations:
                 self.secrets["mongo_db_name"]
             ).get_collection("content_sessions")
 
-            existing_doc = await mongo_instance.find_one(
-                {"userId": user_id, "_id": content_session_id}
+            # Get and update atomically
+            existing_doc = await mongo_instance.find_one_and_update(
+                {"userId": user_id, "_id": content_session_id},
+                {"$set": {"_updating": True}},
+                return_document=True,
             )
+
             if not existing_doc:
                 self.logger.info(
                     f"No content session found to update with ID {content_session_id} for user {user_id}"
                 )
                 raise HTTPException(status_code=404, detail="Content session not found")
 
-            # Deep merge new data into existing session data
+            # Perform the same merge logic as before
             existing_session_data = existing_doc.get("sessionData", {})
             updated_session_data = self.deep_merge(existing_session_data, new_data)
             existing_doc["sessionData"] = updated_session_data
             existing_doc["lastUpdated"] = current_time
+            existing_doc.pop("_updating", None)
 
+            # Use replace_one to maintain exact same update behavior
             result = await mongo_instance.replace_one(
-                {"userId": user_id, "_id": content_session_id}, existing_doc
+                {"userId": user_id, "_id": content_session_id, "_updating": True},
+                existing_doc,
             )
 
             if result.modified_count:
