@@ -14,7 +14,7 @@ class EventType(Enum):
     AUDIO_BUFFER_COMMIT = "input_audio_buffer.commit"
 
 
-class OpenAiRealtimeProtocol:
+class OpenAiRealtimeClient:
     """
     Protocol handler for OpenAI's real-time API.
     Focuses on message formatting and protocol, not connection management.
