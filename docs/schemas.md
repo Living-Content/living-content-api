@@ -1,4 +1,4 @@
-# Data Schemas
+# Database Schemas Documentation
 
 ## Redis Schemas
 
@@ -6,7 +6,7 @@
 
 ```json
 {
-  "user:UUID4" {
+  "user:UUID4": {
     "accessToken": "UUID4",
     "permissionsToken": "UUID4",
     "requests": {
@@ -23,7 +23,7 @@
 
 ```json
 {
-  "accessToken:UUID4" {
+  "accessToken:UUID4": {
     "userId": "UUID4",
     "createdAt": "datetime"
   }
@@ -32,18 +32,21 @@
 
 ## MongoDB Schemas
 
-### Users
+### Users Collection
 
 ```json
 {
   "_id": "UUID4",
+  "accessToken": "UUID4",
+  "permissionsToken": "UUID4",
+  "activeContentSessionId": "UUID4",
   "createdAt": "datetime",
   "lastAccessed": "datetime",
-  "accessToken": "UUID4 or null",
-  "permissionsToken": "UUID4",
   "requests": {
     "allTime": 0
   },
+  "unreadNotifications": {},
+  "authProviders": {},
   "verified": false,
   "emailAddress": "string or null",
   "password": "string or null",
@@ -51,72 +54,90 @@
 }
 ```
 
-### Access Tokens
+### Permissions Tokens Collection
 
 ```json
 {
   "_id": "UUID4",
   "userId": "UUID4",
-  "createdAt": "datetime"
-}
-```
-
-### Permissions Tokens
-
-```json
-{
-  "_id": "UUID4 (userId)",
-  "userId": "UUID4",
   "createdAt": "datetime",
+  "lastAccessed": "datetime",
   "permissions": {
-    [
-      "role": "string",
-      "permission_key": "permission_value",
-      "..."
-    ]
-    "..."
+    "role": "string"
   }
 }
 ```
 
-### Content Sessions
+### Content Sessions Collection
 
 ```json
 {
   "_id": "UUID4",
   "userId": "UUID4",
-  "name": null,
   "createdAt": "datetime",
   "lastAccessed": "datetime",
+  "unreadMessages": false,
+  "name": "string or null",
   "sessionData": {
-    {
-      "storageKey": {
-        "data_keys": "data_values"
-      }
+    "storageKey": {
+      "data_key": "data_value"
     }
   }
 }
 ```
 
-### Notifications
+### Notifications Collection
 
 ```json
 {
   "_id": "UUID4",
   "userId": "UUID4",
-  "createdAt": "datetime",
   "contentSessionId": "UUID4",
-  "context": "text",
-  "message": "A new message has been received.",
-  "urgency": "low",
-  "data": { 
-    "key": "value",
-    "..."
+  "associatedMessageId": "UUID4",
+  "associatedTaskId": "UUID4",
+  "associatedImage": "string",
+  "messageId": "UUID4",
+  "createdAt": "datetime",
+  "type": "string",
+  "toastMessage": "string",
+  "associatedMessage": "string",
+  "urgency": "string",
+  "persistent": boolean,
+  "seen": boolean,
+  "seenAt": "datetime or null",
+  "responseData": {
+    "data_key": "data_value"
   }
 }
 ```
 
+## Collection Indexes
+
+### Permissions Tokens Collection Indexes
+
+- `userId` (ASCENDING)
+
+### Content Sessions Collection Indexes
+
+- `userId` (ASCENDING)
+- `contentSessionId` (ASCENDING)
+
+### Notifications Collection Indexes
+
+- `userId` (ASCENDING)
+- `expiresAt` (ASCENDING) with TTL
+
+### Users Collection Indexes
+
+- `authProviders` (ASCENDING)
+- `accessToken` (ASCENDING)
+
 ## Datetime Format
 
-All datetime fields use: `datetime.now(timezone.utc).isoformat()`  
+All datetime fields use ISO 8601 format with UTC timezone:
+
+```python
+datetime.now(timezone.utc).isoformat()
+```
+
 Example: `2024-06-14T19:12:39.676974+00:00`
