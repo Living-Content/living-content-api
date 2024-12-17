@@ -72,8 +72,6 @@ class SpeechServicesFunctions:
         self,
         user_query: QueryRequest,
         user_id: str,
-        content_session_id: str,
-        client_id: str,
     ):
         """Handle text input for TTS"""
         websocket_client = await self.connection_manager.get_websocket_client()
@@ -99,8 +97,6 @@ class SpeechServicesFunctions:
         self,
         user_query: QueryRequest,
         user_id: str,
-        content_session_id: str,
-        client_id: str,
     ):
         """Handle audio input for STT"""
         websocket_client = await self.connection_manager.get_websocket_client()
@@ -122,7 +118,6 @@ class SpeechServicesFunctions:
 
     async def handle_speech_end(
         self,
-        user_query: QueryRequest,
         user_id: str,
         content_session_id: str,
         client_id: str,
@@ -134,7 +129,7 @@ class SpeechServicesFunctions:
             websocket_client = await self.connection_manager.get_websocket_client()
 
             # Cleanup session
-            session_info = self.active_sessions.pop(session_id)
+            self.active_sessions.pop(session_id)
 
             # Notify client
             await websocket_client.send_message(

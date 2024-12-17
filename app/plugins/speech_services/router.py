@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from .models import TTSRequest
-from .openai_tts_handler import OpenAiTtsHandler
+from .providers.openai.openai_tts_handler import OpenAiTtsHandler
 
 router = APIRouter()
 
