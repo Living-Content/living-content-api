@@ -1,15 +1,11 @@
 #!/bin/bash
 set -e
 
-LOG_DIR="/living-content-mongo/logs"
 MONGO_DB_SETUP_SCRIPT="/living-content-mongo/mongo-db_setup.py"
 MONGO_CREATE_USERS_SCRIPT="/living-content-mongo/mongo-create_users.sh"
-MONGOSH_LOGFILE="$LOG_DIR/mongosh_output.log"
-
-LOGFILE="$LOG_DIR/entrypoint.log"
 
 log() {
-  echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOGFILE
+  echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
 log "Starting MongoDB entrypoint script..."
@@ -29,26 +25,17 @@ log "SSL certificates confirmed to be present."
 
 log "Starting MongoDB..."
 
-# Start MongoDB and capture all output to the log file
+# Start MongoDB logging to stdout
 mongod \
   --bind_ip_all \
   --port 27017 \
   --tlsCAFile "${SSL_CA_CRT}" \
   --tlsCertificateKeyFile "${SHARED_SSL_PEM}" \
   --tlsMode requireTLS \
-  --dbpath /data/db \
-  --logpath "$LOG_DIR/mongod.log" \
-  --logappend \
-  > $LOGFILE 2>&1 &
+  --dbpath /data/db &
 mongod_pid=$!
 
 log "Starting User Creation..."
-
-# Ensure the mongosh output log file is created if not already present
-if [[ ! -f "$MONGOSH_LOGFILE" ]]; then
-  touch "$MONGOSH_LOGFILE"
-  log "Created mongosh output log file at $MONGOSH_LOGFILE."
-fi
 
 log "Waiting for MongoDB to complete startup..."
 sleep 10
@@ -58,19 +45,19 @@ for i in {1..10}; do
   if mongosh --tls \
       --tlsCAFile "${SSL_CA_CRT}" \
       --tlsCertificateKeyFile  "${SHARED_SSL_PEM}" \
-      --eval "print(\"Attempting test connection via mongosh.\")" > $MONGOSH_LOGFILE 2>&1; then
+      --eval "print(\"Attempting test connection via mongosh.\")"; then
     log "MongoDB is up. Proceeding with user creation..."
     # Run user creation script
-    if bash "$MONGO_CREATE_USERS_SCRIPT" >> $LOGFILE 2>&1; then
+    if bash "$MONGO_CREATE_USERS_SCRIPT"; then
       log "User creation script completed successfully."
       break
     else
-      log "User creation script failed. Details:"
-      cat "$LOGFILE"
+      log "User creation script failed."
       exit 1
     fi
   else
-    cat "$MONGOSH_LOGFILE"
+    log "Waiting for MongoDB connection..."
+    sleep 5
   fi
 
   if [ $i -eq 10 ]; then
@@ -80,11 +67,10 @@ for i in {1..10}; do
 done
 
 log "Running the initialization script..."
-if python3 -u "$MONGO_DB_SETUP_SCRIPT" 2>&1 | tee -a $LOGFILE; then
+if python3 -u "$MONGO_DB_SETUP_SCRIPT"; then
   log "Initialization script completed successfully."
 else
-  log "Initialization script failed:"
-  cat "$LOGFILE"
+  log "Initialization script failed."
   exit 1
 fi
 
