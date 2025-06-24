@@ -1,10 +1,8 @@
 #!/bin/bash
 set -e
 
-LOGFILE="/living-content-mongo/logs/create_users.log"
-
 log() {
-  echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOGFILE
+  echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
 get_secret() {

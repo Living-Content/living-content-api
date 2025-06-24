@@ -285,80 +285,71 @@ def env_set(env, force=True, verbose=False):
 # Docker management
 def docker_build(env, verbose=False, nocache=False, service=None, cleanup=True):
     """
-    Build Docker containers for the specified environment and apply tagging.
-    Optionally cleans up dangling images after the build.
-
-    :param env: The environment to use (e.g., development, staging, production).
-    :param verbose: If True, enable verbose output.
-    :param nocache: If True, disable Docker cache.
-    :param service: Name of the service to build (None means all services).
-    :param cleanup: If True, cleans up dangling images after the build.
+    Build Docker containers using Buildx for the specified environment and apply tagging.
     """
-    # Fetch the project name and Google Artifact Registry details from environment variables
-    project_name = os.getenv("PROJECT_NAME")
-    namespace = os.getenv("NAMESPACE")
     google_namespace = os.getenv("GOOGLE_NAMESPACE")
     google_artifact_registry = os.getenv("GOOGLE_ARTIFACT_REGISTRY")
     google_project_id = os.getenv("GOOGLE_PROJECT_ID")
 
-    # Define the default services if no specific service is provided
-    all_services = [
-        "api",
-        "mongo",
-        "redis",
-    ]
-    services = [service] if service else all_services
-
-    compose_file = "docker-compose.yaml"
-
-    # Docker Compose build command
-    command_parts = ["docker", "compose", "-f", compose_file, "build"]
-
-    if nocache:
-        command_parts.append("--no-cache")
-
-    # Add specific service to build command if provided, otherwise it will build all services
-    if service:
-        command_parts.append(service)
-
-    command = " ".join(command_parts)
-
-    # Build the images
+    services = [service] if service else ["api", "mongo", "redis"]
     env_vars = {"ENV": env}
-    run_command(command, 60, env_vars=env_vars, verbose=verbose)
 
-    # Tagging the images
-    for service in services:  # Now it loops over all services or the specified one
-        # Determine the correct tag based on the environment
+    dockerfile_map = {
+        "api": "Dockerfile-api",
+        "mongo": "Dockerfile-mongo",
+        "redis": "Dockerfile-redis",
+    }
+
+    if env == "staging":
+        image_env = "stage"
+    elif env == "production":
+        image_env = "prod"
+
+    for svc in services:
+        dockerfile = dockerfile_map.get(svc)
+        image_name = f"lco-{image_env}-{google_namespace}-{svc}"
+        if not dockerfile or not Path(dockerfile).exists():
+            logger.error(f"Dockerfile not found for service: {svc}")
+            raise FileNotFoundError(f"Dockerfile missing: {dockerfile}")
+        if not (google_artifact_registry and google_project_id and google_namespace):
+            raise ValueError("Missing GCP config for non-dev builds.")
+
+        tag = f"{google_artifact_registry}/{google_project_id}/project-images/{image_name}"
+
+        build_cmd = [
+            "docker",
+            "buildx",
+            "build",
+            "--platform",
+            "linux/amd64",
+            "-f",
+            dockerfile,
+            "-t",
+            tag,
+            "--build-arg",
+            f"ENV={env}",
+            "--build-arg",
+            f"EQTY_TRUSTED_HOST_DOMAIN={os.getenv('EQTY_TRUSTED_HOST_DOMAIN', '')}",
+            "--build-arg",
+            f"EQTY_TRUSTED_HOST_USERNAME={os.getenv('EQTY_TRUSTED_HOST_USERNAME', '')}",
+            "--build-arg",
+            f"EQTY_TRUSTED_HOST_PASSWORD={os.getenv('EQTY_TRUSTED_HOST_PASSWORD', '')}",
+        ]
+
+        if nocache:
+            build_cmd.append("--no-cache")
+
         if env == "development":
-            # Local development tag structure: {namespace}-{project_name}-{service}:{env}
-            tag = f"{namespace}-{project_name}-{service}:{env}"
-        else:  # For staging and production
-            if google_artifact_registry and google_project_id and google_namespace:
-                # {google_artifact_registry}/{google_project_id}/{repository}/{service}:{env}
-                tag = (
-                    f"{google_artifact_registry}/{google_project_id}/"
-                    f"{google_namespace}/{service}:{env}"
-                )
-            else:
-                raise ValueError(
-                    "Google Artifact Registry, project id, and a Google namespace are required for staging and production environments."
-                )
+            build_cmd.append("--load")
+        else:
+            build_cmd.append("--push")
 
-        # Tag the image (assuming the built image follows default Docker Compose naming)
-        original_image = f"{namespace}-{project_name}-{service.split('-')[-1]}:{env}"
+        # Use root as context (from your compose definition)
+        build_cmd.append(".")
 
-        # Tag the image according to Google Artifact Registry naming conventions
-        run_command(
-            f"docker tag {original_image} {tag}", env_vars=env_vars, verbose=verbose
-        )
-        logger.info(f"Tagged {original_image} as {tag}")
+        run_command(" ".join(build_cmd), env_vars=env_vars, verbose=verbose)
+        logger.info(f"Built and tagged {svc} as {tag}")
 
-        # Push the image to Google Artifact Registry if not in development
-        if env != "development":
-            run_command(f"docker push {tag}", env_vars=env_vars, verbose=verbose)
-
-    # Clean up dangling images
     if cleanup:
         run_command("docker image prune -f", verbose=verbose)
         logger.info("Cleaned up dangling images")
@@ -703,6 +694,9 @@ Refer to your distribution's documentation for adding trusted certificates.
     print(instructions)
 
 
+# Secrets management
+
+
 def secrets_generate(env, force=False, verbose=False):
     """
     Generate secrets files for the specified environment.
@@ -717,6 +711,99 @@ def secrets_generate(env, force=False, verbose=False):
         verbose=verbose,
         force=force,
     )
+
+
+def secrets_push_to_k8s(env, verbose=False):
+    """
+    Push generated secrets and certificates to the Kubernetes namespace for the given environment.
+
+    :param env: The environment name (e.g., "staging", "production").
+    :param verbose: If True, print kubectl commands.
+    """
+    namespace = f"project-{os.getenv('PROJECT_ID', '12')}"  # fallback for testing
+    base_cmd = ["kubectl", "-n", namespace, "create", "secret", "generic"]
+    ssl_base = Path(f".ssl/{env}")
+    config_base = Path(f"config/{env}")
+    secrets_dir = Path(f"secrets/{env}/files")
+
+    secret_defs = [
+        {
+            "name": "ssl-api",
+            "files": {
+                "api.crt": ssl_base / "api/api.crt",
+                "api.key": ssl_base / "api/api.key",
+                "api.pem": ssl_base / "api/api.pem",
+            },
+        },
+        {
+            "name": "ssl-shared",
+            "files": {
+                "shared.crt": ssl_base / "shared/shared.crt",
+                "shared.key": ssl_base / "shared/shared.key",
+                "shared.pem": ssl_base / "shared/shared.pem",
+            },
+        },
+        {
+            "name": "ssl-ca",
+            "files": {
+                "ca.crt": Path(".ssl/ca/ca.crt"),
+            },
+        },
+        {
+            "name": "api-config-app",
+            "dir": config_base / "app",
+        },
+        {
+            "name": "api-config-logging",
+            "dir": config_base / "logging",
+        },
+    ]
+
+    # Apply cert and config secrets
+    for secret in secret_defs:
+        cmd = base_cmd.copy()
+        cmd.append(secret["name"])
+
+        if "files" in secret:
+            for key, path in secret["files"].items():
+                if not path.exists():
+                    logger.warning(
+                        f"Missing file for secret '{secret['name']}': {path}"
+                    )
+                    continue
+                cmd += ["--from-file", f"{key}={path}"]
+        elif "dir" in secret:
+            if not secret["dir"].exists():
+                logger.warning(
+                    f"Missing directory for secret '{secret['name']}': {secret['dir']}"
+                )
+                continue
+            cmd += ["--from-file", str(secret["dir"])]
+
+        try:
+            if verbose:
+                logger.info(f"Running: {' '.join(cmd)}")
+            subprocess.run(cmd, check=True)
+            logger.info(f"Secret '{secret['name']}' pushed to namespace '{namespace}'")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to push secret '{secret['name']}': {e}")
+
+    # Now push "all-secrets" bundle
+    if secrets_dir.exists():
+        all_secrets_cmd = base_cmd + ["all-secrets"]
+        for file in secrets_dir.glob("*"):
+            if file.is_file():
+                all_secrets_cmd += ["--from-file", f"{file.name}={file}"]
+
+        try:
+            if verbose:
+                logger.info(f"Running: {' '.join(all_secrets_cmd)}")
+            subprocess.run(all_secrets_cmd, check=True)
+            logger.info(f"Secret 'all-secrets' pushed to namespace '{namespace}'")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to push secret 'all-secrets': {e}")
+    else:
+        logger.warning(f"Secrets directory not found: {secrets_dir}")
 
 
 # Initialize everything
@@ -780,6 +867,7 @@ def main():
         "init:deployment": init_deployment,
         "log:clean": clean_log,
         "secrets:generate": secrets_generate,
+        "secrets:push": secrets_push_to_k8s,
     }
 
     for cmd in subcommands:

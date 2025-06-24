@@ -125,7 +125,7 @@ class ContentSessionManager:
                         # Create session in MongoDB
                         try:
                             await self.mongo_ops.create_content_session_in_mongo(
-                                content_session_data, session=session
+                                content_session_data
                             )
                         except Exception as e:
                             raise Exception(
@@ -139,7 +139,7 @@ class ContentSessionManager:
                                 "lastUpdated": current_time,
                             }
                             await self.mongo_ops.update_user_in_mongo(
-                                user_id, update_fields, session=session
+                                user_id, update_fields
                             )
                         except Exception as e:
                             raise Exception(f"Failed to update user: {e}")
@@ -205,6 +205,26 @@ class ContentSessionManager:
             self._handle_retry_error(re)
 
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3), reraise=True)
+    async def get_content_session_data(
+        self, user_id: str, content_session_id: str
+    ) -> Dict:
+        content_session = await self.get_content_session_helper(
+            content_session_id, user_id
+        )
+        if content_session:
+            self.logger.debug(f"Content session retrieved: {content_session_id}")
+            session_data = content_session.get("sessionData", {})
+            return session_data
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": "Content Session not found",
+                    "data": "no_content_session",
+                },
+            )
+
+    @retry(wait=wait_fixed(2), stop=stop_after_attempt(3), reraise=True)
     async def update_content_session(
         self,
         user_id: str,
@@ -237,7 +257,6 @@ class ContentSessionManager:
                     user_id,
                     content_session_id,
                     new_data,
-                    current_version=current_version,
                 )
 
                 if not updated_session:
@@ -284,9 +303,7 @@ class ContentSessionManager:
                             and user.get("activeContentSessionId") == content_session_id
                         ):
                             await self.mongo_ops.update_user_in_mongo(
-                                user_id,
-                                {"activeContentSessionId": None},
-                                session=session,
+                                user_id, {"activeContentSessionId": None}
                             )
 
                 # After successful MongoDB deletion, remove from Redis

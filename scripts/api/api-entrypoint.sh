@@ -5,8 +5,7 @@ CMD="./venv/bin/gunicorn main:app \
   --workers $WORKERS \
   --worker-class uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:8000 \
-  --worker-tmp-dir /tmp \
-  --log-config /living-content-api/config/logging/logging_config.ini"
+  --worker-tmp-dir /tmp"
 
 # Conditionally append SSL options if ENV is 'development'
 if [ "$ENV" = "development" ]; then
