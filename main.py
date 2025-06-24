@@ -33,6 +33,7 @@ from app.lib.user_manager import UserManager
 from app.lib.permissions_token_manager import PermissionsTokenManager
 from app.middleware.access_token_middleware import AccessTokenMiddleware
 from app.middleware.custom_cors_middleware import CustomCORSMiddleware
+from app.lib.logging_config import setup_logging
 
 
 def include_all_plugin_routers(app: FastAPI, config: dict):
@@ -125,6 +126,7 @@ async def initialize_managers(app: FastAPI):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle management"""
+    setup_logging()
     logging.info("Starting up the application")
 
     try:
