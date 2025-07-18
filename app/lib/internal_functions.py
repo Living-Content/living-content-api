@@ -2,9 +2,11 @@
 
 import logging
 import traceback
+from datetime import UTC, datetime
+
 import eqty
-from datetime import datetime, timezone
 from fastapi import HTTPException, status
+
 from app.models.query import Messages
 
 
@@ -184,13 +186,13 @@ class InternalFunctions:
                 last_query = [
                     {
                         "messageId": request_message_id.value,
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "createdAt": datetime.now(UTC).isoformat(),
                         "role": last_user_message.role,
                         "content": last_user_message.content,
                     },
                     {
                         "messageId": response_message_id.value,
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "createdAt": datetime.now(UTC).isoformat(),
                         "role": "assistant",
                         "content": "".join(collected_messages),
                     },

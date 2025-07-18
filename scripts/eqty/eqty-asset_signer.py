@@ -5,8 +5,9 @@ These statments are then copied during application runtime if the corresponding 
 so that they appear in the generated manifest.
 """
 
-import os
 import json
+import os
+
 import eqty.sdk.core
 
 
@@ -49,7 +50,7 @@ def process_authorizations(project: str, auth_dir: str, type_: str):
         for filename in os.listdir(dir):
             file_path = os.path.join(dir, filename)
             if file_path.endswith(".json"):
-                with open(file_path, "r") as file:
+                with open(file_path) as file:
                     load_auth(file, project, type_)
     else:
         raise Exception(f"Approved {type_} directory not found", dir)

@@ -2,11 +2,13 @@
 
 import logging
 import traceback
-from fastapi import APIRouter, HTTPException, Request, Depends, Header
-from fastapi.responses import JSONResponse
 from uuid import uuid4
-from app.lib.user_manager import UserManager
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
+
 from app.lib.dependencies import get_user_manager
+from app.lib.user_manager import UserManager
 
 router = APIRouter(tags=["User"])
 

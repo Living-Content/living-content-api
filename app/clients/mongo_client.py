@@ -1,9 +1,10 @@
 import logging
 import traceback
+
 from motor.motor_asyncio import AsyncIOMotorClient
+
 from app.lib.config import get_config
 from app.lib.secrets import get_secrets
-from typing import Optional
 
 
 async def init_mongo() -> AsyncIOMotorClient:
@@ -54,13 +55,13 @@ async def init_mongo() -> AsyncIOMotorClient:
         raise
 
 
-def get_mongo_client(mongo_pool: Optional[AsyncIOMotorClient]) -> AsyncIOMotorClient:
+def get_mongo_client(mongo_pool: AsyncIOMotorClient | None) -> AsyncIOMotorClient:
     if mongo_pool is None:
         raise RuntimeError("MongoDB connection pool not initialized")
     return mongo_pool
 
 
-def close_mongo(mongo_client: Optional[AsyncIOMotorClient]):
+def close_mongo(mongo_client: AsyncIOMotorClient | None):
     if mongo_client:
         try:
             mongo_client.close()

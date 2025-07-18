@@ -3,11 +3,13 @@
 import logging
 import traceback
 from uuid import uuid4
-from fastapi import APIRouter, HTTPException, Depends, Header
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
-from app.models.access_token import UserCreationTokenResponse
+
+from app.lib.dependencies import get_secrets, get_user_manager
 from app.lib.user_manager import UserManager
-from app.lib.dependencies import get_user_manager, get_secrets
+from app.models.access_token import UserCreationTokenResponse
 
 router = APIRouter(tags=["Access Token"])
 

@@ -1,13 +1,13 @@
 # app/lib/content_session_manager.py
 
+import asyncio
 import logging
 import uuid
-import asyncio
-from datetime import datetime, timezone
-from typing import Dict, Optional
 from contextlib import asynccontextmanager
-from tenacity import retry, wait_fixed, stop_after_attempt, RetryError
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
+from tenacity import RetryError, retry, stop_after_attempt, wait_fixed
 
 from app.lib.mongo_operations import MongoOperations
 from app.lib.redis_operations import RedisOperations
@@ -47,7 +47,7 @@ class ContentSessionManager:
             if not self._locks[session_id].locked():
                 self._locks.pop(session_id, None)
 
-    async def _safely_update_redis(self, content_session: Dict):
+    async def _safely_update_redis(self, content_session: dict):
         """Safely update Redis with a new version of content session"""
         try:
             # Get current version from Redis first
@@ -66,7 +66,7 @@ class ContentSessionManager:
 
     async def get_content_session_helper(
         self, content_session_id: str, user_id: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Helper function to get content session with proper versioning"""
         try:
             # Try Redis first
@@ -106,11 +106,11 @@ class ContentSessionManager:
             )
 
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
-    async def create_content_session(self, user_id: str) -> Dict:
+    async def create_content_session(self, user_id: str) -> dict:
         """Create a new content session with proper locking and versioning"""
         try:
             content_session_id = str(uuid.uuid4())
-            current_time = datetime.now(timezone.utc).isoformat()
+            current_time = datetime.now(UTC).isoformat()
 
             async with self._get_session_lock(content_session_id):
                 # Start MongoDB transaction
@@ -125,7 +125,7 @@ class ContentSessionManager:
                         # Create session in MongoDB
                         try:
                             await self.mongo_ops.create_content_session_in_mongo(
-                                content_session_data, session=session
+                                content_session_data
                             )
                         except Exception as e:
                             raise Exception(
@@ -139,7 +139,7 @@ class ContentSessionManager:
                                 "lastUpdated": current_time,
                             }
                             await self.mongo_ops.update_user_in_mongo(
-                                user_id, update_fields, session=session
+                                user_id, update_fields
                             )
                         except Exception as e:
                             raise Exception(f"Failed to update user: {e}")
@@ -177,7 +177,7 @@ class ContentSessionManager:
             )
 
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
-    async def get_content_session(self, user_id: str, content_session_id: str) -> Dict:
+    async def get_content_session(self, user_id: str, content_session_id: str) -> dict:
         """Get content session with versioning support"""
         try:
             content_session = await self.get_content_session_helper(
@@ -205,12 +205,32 @@ class ContentSessionManager:
             self._handle_retry_error(re)
 
     @retry(wait=wait_fixed(2), stop=stop_after_attempt(3), reraise=True)
+    async def get_content_session_data(
+        self, user_id: str, content_session_id: str
+    ) -> dict:
+        content_session = await self.get_content_session_helper(
+            content_session_id, user_id
+        )
+        if content_session:
+            self.logger.debug(f"Content session retrieved: {content_session_id}")
+            session_data = content_session.get("sessionData", {})
+            return session_data
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "message": "Content Session not found",
+                    "data": "no_content_session",
+                },
+            )
+
+    @retry(wait=wait_fixed(2), stop=stop_after_attempt(3), reraise=True)
     async def update_content_session(
         self,
         user_id: str,
         content_session_id: str,
         new_data: dict,
-    ) -> Dict:
+    ) -> dict:
         """Update content session with optimistic locking"""
         async with self._get_session_lock(content_session_id):
             try:
@@ -230,14 +250,13 @@ class ContentSessionManager:
                 # Increment version and update timestamp
                 current_version = current_session.get("version", 0)
                 new_data["version"] = current_version + 1
-                new_data["lastUpdated"] = datetime.now(timezone.utc).isoformat()
+                new_data["lastUpdated"] = datetime.now(UTC).isoformat()
 
                 # Update with optimistic locking
                 updated_session = await self.mongo_ops.update_content_session_in_mongo(
                     user_id,
                     content_session_id,
                     new_data,
-                    current_version=current_version,
                 )
 
                 if not updated_session:
@@ -284,9 +303,7 @@ class ContentSessionManager:
                             and user.get("activeContentSessionId") == content_session_id
                         ):
                             await self.mongo_ops.update_user_in_mongo(
-                                user_id,
-                                {"activeContentSessionId": None},
-                                session=session,
+                                user_id, {"activeContentSessionId": None}
                             )
 
                 # After successful MongoDB deletion, remove from Redis

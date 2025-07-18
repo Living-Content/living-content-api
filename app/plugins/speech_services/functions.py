@@ -1,7 +1,8 @@
 import logging
-from typing import Dict, Any
-from app.models.query import QueryRequest
+from typing import Any
+
 from app.lib.connection_manager import ConnectionManager
+from app.models.query import QueryRequest
 
 
 class SpeechServicesFunctions:
@@ -19,7 +20,7 @@ class SpeechServicesFunctions:
         self.content_session_manager = function_handler.content_session_manager
         self.notification_manager = function_handler.notification_manager
         self.redis_ops = self.content_session_manager.redis_ops
-        self.active_sessions: Dict[str, Dict[str, Any]] = {}
+        self.active_sessions: dict[str, dict[str, Any]] = {}
 
     async def handle_speech_start(
         self,
@@ -72,8 +73,6 @@ class SpeechServicesFunctions:
         self,
         user_query: QueryRequest,
         user_id: str,
-        content_session_id: str,
-        client_id: str,
     ):
         """Handle text input for TTS"""
         websocket_client = await self.connection_manager.get_websocket_client()
@@ -99,8 +98,6 @@ class SpeechServicesFunctions:
         self,
         user_query: QueryRequest,
         user_id: str,
-        content_session_id: str,
-        client_id: str,
     ):
         """Handle audio input for STT"""
         websocket_client = await self.connection_manager.get_websocket_client()
@@ -122,7 +119,6 @@ class SpeechServicesFunctions:
 
     async def handle_speech_end(
         self,
-        user_query: QueryRequest,
         user_id: str,
         content_session_id: str,
         client_id: str,
@@ -134,7 +130,7 @@ class SpeechServicesFunctions:
             websocket_client = await self.connection_manager.get_websocket_client()
 
             # Cleanup session
-            session_info = self.active_sessions.pop(session_id)
+            self.active_sessions.pop(session_id)
 
             # Notify client
             await websocket_client.send_message(

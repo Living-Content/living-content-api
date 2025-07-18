@@ -2,8 +2,9 @@
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
+
 from app.lib.mongo_operations import MongoOperations
 from app.lib.redis_operations import RedisOperations
 from app.schemas.mongo_schema import generate_notification_data
@@ -29,7 +30,7 @@ class NotificationManager:
 
     async def get_unseen_notifications(
         self, user_id: str, content_session_id: str
-    ) -> Optional[List[Dict[str, Any]]]:
+    ) -> list[dict[str, Any]] | None:
         self.logger.debug(f"Fetching unseen notifications for user {user_id}")
         try:
             notifications = await self.redis_ops.get_unseen_notifications_from_redis(
@@ -55,7 +56,7 @@ class NotificationManager:
             f"Marking notification {notification_id} as seen for user {user_id}"
         )
         try:
-            seen_at = datetime.now(timezone.utc)
+            seen_at = datetime.now(UTC)
             updated_notification = (
                 await self.mongo_ops.update_notification_as_seen_in_mongo(
                     user_id, notification_id, seen_at
@@ -147,7 +148,7 @@ class NotificationManager:
     ):
         try:
             notification_id = str(uuid.uuid4())
-            created_at = datetime.now(timezone.utc).isoformat()
+            created_at = datetime.now(UTC).isoformat()
 
             self.logger.debug(
                 f"Creating notification {notification_id} for user {user_id}"

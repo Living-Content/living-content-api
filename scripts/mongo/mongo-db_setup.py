@@ -3,10 +3,11 @@
 import logging
 import os
 import sys
-from pymongo import MongoClient, ASCENDING
-from pymongo.errors import ConnectionFailure
+from datetime import UTC, datetime
 from uuid import uuid4
-from datetime import datetime, timezone
+
+from pymongo import ASCENDING, MongoClient
+from pymongo.errors import ConnectionFailure
 
 # Setup logging to console and file
 
@@ -40,7 +41,7 @@ def setup_database():
 
         # Check if the secret is available as a Docker secret file
         if os.path.exists(secret_path):
-            with open(secret_path, "r") as secret_file:
+            with open(secret_path) as secret_file:
                 return secret_file.read().strip()
         else:
             # Fallback to environment variable if the secret file does not exist
@@ -113,8 +114,8 @@ def setup_database():
             "accessToken": access_token,
             "permissionsToken": permissions_token,
             "activeContentSessionId": content_session_id,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "lastAccessed": datetime.now(timezone.utc).isoformat(),
+            "createdAt": datetime.now(UTC).isoformat(),
+            "lastAccessed": datetime.now(UTC).isoformat(),
             "requests": {"allTime": 0},
             "unreadNotifications": {},
             "authProviders": {},
@@ -130,8 +131,8 @@ def setup_database():
         permissions_token_doc = {
             "_id": permissions_token,
             "userId": user_id,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "lastAccessed": datetime.now(timezone.utc).isoformat(),
+            "createdAt": datetime.now(UTC).isoformat(),
+            "lastAccessed": datetime.now(UTC).isoformat(),
             "permissions": {"role": "user"},
         }
         db.permissions_tokens.insert_one(permissions_token_doc)
@@ -141,8 +142,8 @@ def setup_database():
         content_session_doc = {
             "_id": content_session_id,
             "userId": user_id,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
-            "lastAccessed": datetime.now(timezone.utc).isoformat(),
+            "createdAt": datetime.now(UTC).isoformat(),
+            "lastAccessed": datetime.now(UTC).isoformat(),
             "unreadMessages": False,
             "name": None,
             "sessionData": {"storageKey": {"exampleKey": "exampleValue"}},
@@ -162,7 +163,7 @@ def setup_database():
             "associatedTaskId": task_id,
             "associatedImage": "https://example.com/image.jpg",
             "messageId": message_id,
-            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "createdAt": datetime.now(UTC).isoformat(),
             "type": "text",
             "toastMessage": "You have a new message!",
             "associatedMessage": "Welcome to Living Content!",

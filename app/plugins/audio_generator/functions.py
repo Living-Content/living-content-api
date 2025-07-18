@@ -1,18 +1,18 @@
 # plugins/audio_generator/functions.py
 
-import eqty
-import logging
 import json
-from datetime import datetime, timezone
-from typing import Optional
-from app.lib import save_asset
-from app.models.query import QueryRequest
-from app.models.query import Messages
+import logging
+from datetime import UTC, datetime
+
+import eqty
 
 # Local Plugin Imports
 from providers.jenai.jenai_request_handler import (
     JenaiRequestHandler,
 )
+
+from app.lib import save_asset
+from app.models.query import Messages, QueryRequest
 
 
 class AudioGeneratorFunctions:
@@ -32,8 +32,8 @@ class AudioGeneratorFunctions:
         content_session_id: str,
         request_message_id: eqty.Asset = None,
         response_message_id: eqty.Asset = None,
-        generated_data: Optional[eqty.Asset] = None,
-        media_asset: Optional[eqty.CID] = None,
+        generated_data: eqty.Asset | None = None,
+        media_asset: eqty.CID | None = None,
     ):
         # Prepare query messages
         system_prompt = user_query.system_prompt
@@ -72,7 +72,7 @@ class AudioGeneratorFunctions:
             result = json.loads(llm_response)
             self.logger.debug(f"Parsed LLM response: {result}")
         except json.JSONDecodeError as e:
-            raise ValueError(f"Error decoding JSON: {str(e)}")
+            raise ValueError(f"Error decoding JSON: {e!s}")
 
         return result
 
@@ -83,8 +83,8 @@ class AudioGeneratorFunctions:
         content_session_id: str,
         request_message_id: eqty.Asset = None,
         response_message_id: eqty.Asset = None,
-        generated_data: Optional[eqty.Asset] = None,
-        media_asset: Optional[eqty.CID] = None,
+        generated_data: eqty.Asset | None = None,
+        media_asset: eqty.CID | None = None,
     ):
 
         additional_data = user_query.additional_data
@@ -128,7 +128,7 @@ class AudioGeneratorFunctions:
         task_asset = {
             task_id: {
                 "prompt": prompt,
-                "createdAt": datetime.now(timezone.utc).isoformat(),
+                "createdAt": datetime.now(UTC).isoformat(),
                 "status": "processing",
                 "endpoint": endpoint,
             }
@@ -140,13 +140,13 @@ class AudioGeneratorFunctions:
                 "queries": [
                     {
                         "messageId": request_message_id.value,
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "createdAt": datetime.now(UTC).isoformat(),
                         "role": "user",
                         "content": request_message,
                     },
                     {
                         "messageId": response_message_id.value,
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "createdAt": datetime.now(UTC).isoformat(),
                         "role": "assistant",
                         "content": response_message,
                     },

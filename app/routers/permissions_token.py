@@ -1,8 +1,9 @@
 # app/routers/permissions_token.py
 
-from fastapi import APIRouter, HTTPException, Request, Depends
-from app.lib.permissions_token_manager import PermissionsTokenManager
+from fastapi import APIRouter, Depends, HTTPException, Request
+
 from app.lib.dependencies import get_permissions_token_manager
+from app.lib.permissions_token_manager import PermissionsTokenManager
 
 router = APIRouter(tags=["Permissions Token"])
 

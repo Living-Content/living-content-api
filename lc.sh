@@ -239,6 +239,9 @@ show_help() {
     echo "  secrets:generate        Generates secrets for the project."
     echo "                          Usage: $0 init:secrets"
     echo
+    echo "  secrets:push            Pushes secrets to Kubernetes."
+    echo "                          Usage: $0 secrets:push"
+    echo 
     echo "  venv:activate           Shows instructions to activate the Python virtual environment."
     echo "                          Usage: $0 venv:activate"
     echo
@@ -270,6 +273,7 @@ show_short_help() {
     echo "  install:dependencies    Install project dependencies"
     echo "  log:clean               Clean the log file 'lc.log'"
     echo "  secrets:generate        Generates secrets for the project"
+    echo "  secrets:push            Push secrets to Kubernetes"
     echo "  ssl:generate            Generate SSL certificates"
     echo "  venv:activate           Show how to activate the virtual environment"
     echo "  venv:create             Create a Python virtual environment"
@@ -383,6 +387,10 @@ case $COMMAND in
     secrets:generate)
         echo -e "${DARK_BLUE}Initializing secrets...${NC}"
         run_orchestrator secrets:generate "${ARGS[@]}"
+        ;;
+    secrets:push)
+        echo -e "${DARK_BLUE}Pushing secrets to Kubernetes...${NC}"
+        run_orchestrator secrets:push "${ARGS[@]}"
         ;;
     ssl:generate)
         echo -e "${DARK_BLUE}Setting up development SSL certificates...${NC}"

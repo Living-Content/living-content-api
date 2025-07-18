@@ -1,6 +1,7 @@
-from app.models.query import QueryRequest
+
 from pydantic import BaseModel, Field
-from typing import Optional, Dict
+
+from app.models.query import QueryRequest
 
 
 class SongMetadata(BaseModel):
@@ -9,7 +10,7 @@ class SongMetadata(BaseModel):
 
 
 class AudioGeneratorQueryRequest(QueryRequest):
-    selected_songs: Optional[Dict[str, SongMetadata]] = Field(
+    selected_songs: dict[str, SongMetadata] | None = Field(
         default=None,
         alias="selectedSongs",
         description="A dictionary of selected audio tracks to be used for audio generation, keyed by unique song IDs.",

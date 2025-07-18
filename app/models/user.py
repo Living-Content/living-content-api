@@ -1,7 +1,7 @@
 # app/models/user.py
 
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class CreateUserRequest(BaseModel):
@@ -15,8 +15,8 @@ class CreateUserRequest(BaseModel):
     """
 
     user_id: str = Field(..., alias="userId")
-    username: Optional[str] = None
-    email: Optional[str] = None
+    username: str | None = None
+    email: str | None = None
 
 
 class User(BaseModel):
@@ -30,5 +30,5 @@ class User(BaseModel):
     """
 
     user_id: str = Field(..., alias="userId")
-    username: Optional[str] = None
-    email: Optional[str] = None
+    username: str | None = None
+    email: str | None = None

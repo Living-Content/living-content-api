@@ -1,13 +1,14 @@
-import os
 import asyncio
-import aiofiles
 import logging
-from typing import Dict, Any
+import os
+from typing import Any
+
+import aiofiles
 
 
 class SecretsSingleton:
     _instance = None
-    _secrets: Dict[str, Any] = None
+    _secrets: dict[str, Any] = None
     _lock = asyncio.Lock()
     _initialized = False
     _logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ class SecretsSingleton:
         return cls._instance
 
     @classmethod
-    async def _load_secrets(cls) -> Dict[str, Any]:
+    async def _load_secrets(cls) -> dict[str, Any]:
         """Load secrets from files in the ./secrets/ directory."""
         secrets = {}
         secrets_dir = "./secrets/"  # Secrets directory
@@ -70,7 +71,7 @@ class SecretsSingleton:
         return None
 
     @classmethod
-    async def initialize(cls) -> Dict[str, Any]:
+    async def initialize(cls) -> dict[str, Any]:
         if not cls._initialized:
             async with cls._lock:
                 if not cls._initialized:
@@ -80,7 +81,7 @@ class SecretsSingleton:
         return cls._secrets
 
     @classmethod
-    def get_secrets(cls) -> Dict[str, Any]:
+    def get_secrets(cls) -> dict[str, Any]:
         if not cls._initialized:
             raise RuntimeError(
                 "Secrets not initialized. Call 'await SecretsSingleton.initialize()' first."

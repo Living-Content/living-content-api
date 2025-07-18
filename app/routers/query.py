@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from app.models.query import QueryRequest, GetQueriesRequest
-from app.lib.query_handler import QueryHandler
-from app.lib.dependencies import get_secrets, get_query_handler
-from app.lib import save_asset
 import logging
 import traceback
+
 import eqty
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from app.lib import save_asset
+from app.lib.dependencies import get_query_handler, get_secrets
+from app.lib.query_handler import QueryHandler
+from app.models.query import GetQueriesRequest, QueryRequest
 
 router = APIRouter(tags=["Query"])
 
@@ -88,7 +90,7 @@ async def get_query_history(
         logging.error(f"HTTP Exception in endpoint: {e.status_code}: {e.detail}")
         raise e
     except Exception as e:
-        logging.error(f"Unexpected error retrieving query history: {str(e)}")
+        logging.error(f"Unexpected error retrieving query history: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

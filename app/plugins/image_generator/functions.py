@@ -1,18 +1,16 @@
 # app/plugins/image_generator/functions.py
 
-import aiohttp
-import eqty
-import logging
 import json
+import logging
 import os
 import shutil
 import uuid
-from datetime import datetime, timezone
-from fastapi import HTTPException
-from typing import Optional
-from app.lib import save_asset
-from app.models.query import QueryRequest
+from datetime import UTC, datetime
+
+import aiohttp
+import eqty
 from eqty.sdk.core import add_data_statement
+from fastapi import HTTPException
 
 # Local Plugin Imports
 from models import TaskData
@@ -20,6 +18,9 @@ from providers.apiframe.apiframe_request_handler import ApiframeRequestHandler
 from providers.apiframe.apiframe_response_handler import (
     ApiframeResponseHandler,
 )
+
+from app.lib import save_asset
+from app.models.query import QueryRequest
 
 
 class ImageGeneratorFunctions:
@@ -103,8 +104,8 @@ class ImageGeneratorFunctions:
         content_session_id: str,
         eqty_request_message_id: eqty.Asset,
         eqty_response_message_id: eqty.Asset,
-        generated_data: Optional[eqty.Asset] = None,
-        image_asset: Optional[eqty.CID] = None,
+        generated_data: eqty.Asset | None = None,
+        image_asset: eqty.CID | None = None,
     ):
         selected_images = (
             user_query.plugin_data.get("selectedImages")
@@ -165,9 +166,9 @@ class ImageGeneratorFunctions:
         content_session_id: str,
         request_message_id: eqty.Asset,
         response_message_id: eqty.Asset,
-        generated_data: Optional[eqty.Asset] = None,
-        plugin_data: Optional[eqty.Asset] = None,
-        image_asset: Optional[eqty.CID] = None,
+        generated_data: eqty.Asset | None = None,
+        plugin_data: eqty.Asset | None = None,
+        image_asset: eqty.CID | None = None,
     ):
         request_message = (
             user_query.messages[-1].content
@@ -212,7 +213,7 @@ class ImageGeneratorFunctions:
             if not task_id:
                 raise ValueError("No task_id in apiframe response")
 
-            created_at = datetime.now(timezone.utc).isoformat()
+            created_at = datetime.now(UTC).isoformat()
 
             task_data = TaskData(
                 task_id,
@@ -283,9 +284,9 @@ class ImageGeneratorFunctions:
             return (result, task_asset)
 
         except Exception as e:
-            self._logger.error(f"Error in generate_an_image: {str(e)}", exc_info=True)
+            self._logger.error(f"Error in generate_an_image: {e!s}", exc_info=True)
             raise HTTPException(
-                status_code=500, detail=f"Error in image generation process: {str(e)}"
+                status_code=500, detail=f"Error in image generation process: {e!s}"
             )
 
     def _error_response(self, message, user_id=None, content_session_id=None):

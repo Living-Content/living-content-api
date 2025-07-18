@@ -2,9 +2,10 @@
 
 import json
 import logging
-from fastapi import HTTPException
-from typing import Any, Dict, Optional, List
+from typing import Any
+
 import redis.asyncio as redis
+from fastapi import HTTPException
 
 
 class RedisOperations:
@@ -15,7 +16,7 @@ class RedisOperations:
     # Create functions
 
     async def create_content_session_in_redis(
-        self, content_session_data: Dict[str, Any], ttl: int = 3600
+        self, content_session_data: dict[str, Any], ttl: int = 3600
     ) -> None:
         try:
             content_session_id = content_session_data["_id"]
@@ -32,7 +33,7 @@ class RedisOperations:
             raise
 
     async def create_notification_in_redis(
-        self, notification: Dict[str, Any], ttl: int = 3600
+        self, notification: dict[str, Any], ttl: int = 3600
     ) -> None:
         try:
             user_id = notification["userId"]
@@ -52,7 +53,7 @@ class RedisOperations:
             raise
 
     async def create_notifications_in_redis(
-        self, notifications: List[Dict[str, Any]], ttl: int = 3600
+        self, notifications: list[dict[str, Any]], ttl: int = 3600
     ) -> None:
         try:
             pipeline = self.redis_client.pipeline()
@@ -77,7 +78,7 @@ class RedisOperations:
 
     async def get_content_session_from_redis(
         self, user_id: str, content_session_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         try:
             content_session = await self.redis_client.get(content_session_id)
             if content_session:
@@ -112,7 +113,7 @@ class RedisOperations:
 
     async def get_unseen_notifications_from_redis(
         self, user_id: str, content_session_id: str
-    ) -> Optional[List[Dict[str, Any]]]:
+    ) -> list[dict[str, Any]] | None:
         try:
             pattern = f"notification:{user_id}:{content_session_id}:*"
             keys = await self.redis_client.keys(pattern)

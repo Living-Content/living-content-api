@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from app.models.function import GetEnabledFunctionListRequest
-from app.lib.function_handler import FunctionHandler
+
 from app.lib.dependencies import get_function_handler
+from app.lib.function_handler import FunctionHandler
+from app.models.function import GetEnabledFunctionListRequest
 
 router = APIRouter(tags=["Functions"])
 

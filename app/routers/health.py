@@ -1,8 +1,9 @@
 # app/routers/health.py
 
+import logging
+
 from fastapi import APIRouter
 from starlette.status import HTTP_200_OK
-import logging
 
 router = APIRouter(tags=["Healthz"])
 

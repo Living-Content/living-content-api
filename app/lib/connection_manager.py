@@ -1,14 +1,14 @@
 import logging
 import os
-import asyncio
-from asyncio import Lock, Event
-from typing import Optional, Callable, Any
+from asyncio import Event, Lock
+from typing import Optional
+
 from fastapi import FastAPI
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from app.clients.mongo_client import init_mongo
@@ -23,7 +23,7 @@ class ConnectionManager:
     @classmethod
     async def create(
         cls,
-        app: Optional[FastAPI] = None,
+        app: FastAPI | None = None,
         max_retries: int = 3,
         retry_delay: float = 1.0,
     ) -> "ConnectionManager":
@@ -53,7 +53,7 @@ class ConnectionManager:
 
     def __init__(self):
         """Initialize instance variables"""
-        self.app: Optional[FastAPI] = None
+        self.app: FastAPI | None = None
         self.mongo_client = None
         self.redis_client = None
         self.websocket_client = None

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
+
 from app.plugins.audio_generator.dependencies import get_audio_generator_functions
 from app.plugins.audio_generator.functions import AudioGeneratorFunctions
 
@@ -40,7 +41,7 @@ async def jenai_status(
 
     except Exception as exc:
         # Handle any other exceptions and log if necessary
-        error_message = f"An unexpected error occurred: {str(exc)}"
+        error_message = f"An unexpected error occurred: {exc!s}"
         print(error_message)  # Replace with logging if available
         raise HTTPException(
             status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=error_message

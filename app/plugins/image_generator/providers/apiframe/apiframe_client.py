@@ -1,11 +1,12 @@
 # app/plugins/image_generator/apiframe_client.py
 
-import httpx
 import asyncio
 import logging
-from typing import Dict, Any
-from httpx import Timeout, AsyncClient
+from typing import Any
+
+import httpx
 from fastapi import HTTPException
+from httpx import AsyncClient, Timeout
 
 
 class Apiframe_Client:
@@ -42,7 +43,7 @@ class Apiframe_Client:
             self.client = None
 
     async def make_request(
-        self, method: str, endpoint: str, data: Dict[str, Any] = None
+        self, method: str, endpoint: str, data: dict[str, Any] = None
     ):
         client = await self.get_client()
 
@@ -66,7 +67,7 @@ class Apiframe_Client:
                 },
             )
         except httpx.RequestError as e:
-            self.logger.error(f"Network error occurred: {str(e)}")
+            self.logger.error(f"Network error occurred: {e!s}")
             raise HTTPException(
                 status_code=500,
                 detail={
@@ -76,7 +77,7 @@ class Apiframe_Client:
                 },
             )
         except Exception as e:
-            self.logger.error(f"Unexpected error occurred: {str(e)}")
+            self.logger.error(f"Unexpected error occurred: {e!s}")
             raise HTTPException(
                 status_code=500,
                 detail={

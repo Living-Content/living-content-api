@@ -17,3 +17,4 @@
 - [Deployment](deployment.md) - Deployment instructions and environments
 - [CLI Tool](cli.md) - Documentation for the `lc.sh` command-line tool
 - [Plugin System](plugins.md) - Available plugins and extensions
+- [Domains & SSL](domains.md) - Recommendations for domain and SSL setup

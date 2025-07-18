@@ -1,7 +1,8 @@
 # app/clients/openai_client.py
 
-from openai import AsyncOpenAI
 import threading
+
+from openai import AsyncOpenAI
 
 
 class OpenAI_Client:
