@@ -1,7 +1,8 @@
 import logging
-from typing import Dict, Any
-from app.models.query import QueryRequest
+from typing import Any
+
 from app.lib.connection_manager import ConnectionManager
+from app.models.query import QueryRequest
 
 
 class SpeechServicesFunctions:
@@ -19,7 +20,7 @@ class SpeechServicesFunctions:
         self.content_session_manager = function_handler.content_session_manager
         self.notification_manager = function_handler.notification_manager
         self.redis_ops = self.content_session_manager.redis_ops
-        self.active_sessions: Dict[str, Dict[str, Any]] = {}
+        self.active_sessions: dict[str, dict[str, Any]] = {}
 
     async def handle_speech_start(
         self,

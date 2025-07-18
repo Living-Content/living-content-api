@@ -1,8 +1,9 @@
-import os
-import yaml
-import json
 import argparse
+import json
+import os
 import re
+
+import yaml
 
 from app.lib.config import ConfigSingleton
 
@@ -14,7 +15,7 @@ def convert_yaml_to_dict(yaml_content):
 def load_yaml_file(file_path):
     if os.path.exists(file_path):
         print(f"Loading file: {file_path}")
-        with open(file_path, "r") as yaml_file:
+        with open(file_path) as yaml_file:
             yaml_content = yaml_file.read()
             return convert_yaml_to_dict(yaml_content)
     return {}
@@ -132,7 +133,7 @@ def process_templates(env, config_dict, force):
                 print(f"Skipping existing file: {output_path}")
                 continue
 
-            with open(template_path, "r") as template_file:
+            with open(template_path) as template_file:
                 content = template_file.read()
 
             if host.lower() == "google" and filename == "configmap.yaml":

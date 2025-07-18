@@ -1,5 +1,6 @@
+from typing import Any
+
 from pydantic import BaseModel, Field
-from typing import Dict, Any
 
 
 class UpdateContentSessionData(BaseModel):
@@ -10,4 +11,4 @@ class UpdateContentSessionData(BaseModel):
         new_data (Optional[Dict[str, Any]]): The new data to update in the content session. Default is None.
     """
 
-    new_data: Dict[str, Any] = Field(None, alias="newData")
+    new_data: dict[str, Any] = Field(None, alias="newData")

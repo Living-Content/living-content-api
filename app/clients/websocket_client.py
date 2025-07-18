@@ -2,14 +2,15 @@ import asyncio
 import json
 import logging
 import uuid
-from typing import Dict, Any
+from typing import Any
+
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 
 class WebSocketClient:
     def __init__(self, redis_client, worker_id):
         self.redis = redis_client
-        self.active_connections: Dict[str, Dict[str, Any]] = (
+        self.active_connections: dict[str, dict[str, Any]] = (
             {}
         )  # user_id -> {client_id -> {websocket, last_sequence}}
         self._logger = logging.getLogger(__name__)

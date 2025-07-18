@@ -1,10 +1,10 @@
-import os
 import argparse
+import os
 import re
 import secrets
+import shutil
 import string
 from uuid import uuid4
-import shutil
 
 
 def copy_config_files(env, force):
@@ -59,7 +59,7 @@ def process_yaml_vars(env, force):
     for file in yaml_files:
         file_path = os.path.join(source_dir, file)
 
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             yaml_content = f.read()
 
         if re.search(r"\{\{.*\}\}", yaml_content):

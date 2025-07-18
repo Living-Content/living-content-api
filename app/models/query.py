@@ -1,7 +1,7 @@
 # app/plugins/query/models.py
-import eqty
+from typing import Any
 
-from typing import Optional, List, Dict, Any
+import eqty
 from pydantic import BaseModel, Field
 
 
@@ -12,12 +12,12 @@ class Messages(BaseModel):
         ..., description="The role of the message sender (e.g., user, assistant)."
     )
     content: str = Field(..., description="The content of the message.")
-    message_id: Optional[str] = Field(
+    message_id: str | None = Field(
         default=None,
         description="The unique identifier of the message.",
         alias="messageId",
     )
-    created_at: Optional[str] = Field(
+    created_at: str | None = Field(
         default=None,
         description="The timestamp of the message creation.",
         alias="createdAt",
@@ -27,24 +27,24 @@ class Messages(BaseModel):
 class QueryRequest(BaseModel):
     """Describes the request for a query, optionally including a model and a list of messages."""
 
-    model: Optional[str] = Field(
+    model: str | None = Field(
         default=None,
         example="gpt-4o",
         description="The model to use for processing the query, defaults to None.",
     )
-    system_prompt: Optional[str] = Field(
+    system_prompt: str | None = Field(
         default=None,
         alias="systemPrompt",
         example="You are a friendly assistant.",
         description="An overrride for the system prompt to use for the query.",
     )
-    function_id: Optional[str] = Field(
+    function_id: str | None = Field(
         default=None,
         alias="functionId",
         example="generate_a_song_prompt",
         description="A specific function to call.",
     )
-    response_schema: Optional[Dict[str, Any]] = Field(
+    response_schema: dict[str, Any] | None = Field(
         default=None,
         alias="responseSchema",
         example={
@@ -69,16 +69,16 @@ class QueryRequest(BaseModel):
         },
         description="A JSON schema request for a specific response object.",
     )
-    messages: Optional[List[Messages]] = Field(
+    messages: list[Messages] | None = Field(
         default=None,
         description="A list of messages that make up the conversation or query context.",
     )
-    additional_data: Optional[Any] = Field(
+    additional_data: Any | None = Field(
         default=None,
         alias="additionalData",
         description="Additional data to be passed to the model for processing, can be any type.",
     )
-    plugin_data: Optional[Any] = Field(
+    plugin_data: Any | None = Field(
         default=None,
         alias="pluginData",
         description="Plugin data to be passed to the model for processing, can be any type.",

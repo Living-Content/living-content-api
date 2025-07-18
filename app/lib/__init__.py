@@ -1,8 +1,9 @@
-from pydantic import BaseModel
-import os
-import eqty
 import json
 import logging
+import os
+
+import eqty
+from pydantic import BaseModel
 
 
 def save_asset(asset: eqty.Asset):

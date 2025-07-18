@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Header
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+
 from app.lib.content_session_manager import ContentSessionManager
 from app.lib.dependencies import get_content_session_manager
 from app.models.content_session import UpdateContentSessionData

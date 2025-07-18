@@ -1,12 +1,13 @@
 # app/plugins/image_generator/router.py
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
 import logging
+
+from dependencies import get_image_generator_functions
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from functions import ImageGeneratorFunctions
 
 # Local Plugin Imports
 from models import ApiframeResponse
-from dependencies import get_image_generator_functions
-from functions import ImageGeneratorFunctions
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -38,11 +39,11 @@ async def apiframe_response(
         return Response(status_code=200)
 
     except HTTPException as e:
-        logger.error(f"HTTP exception in apiframe_response: {str(e)}")
+        logger.error(f"HTTP exception in apiframe_response: {e!s}")
         raise e
 
     except Exception as e:
-        logger.error(f"Unexpected error in apiframe_response: {str(e)}")
+        logger.error(f"Unexpected error in apiframe_response: {e!s}")
         raise HTTPException(
             status_code=500, detail="Error processing Apiframe response"
         )

@@ -1,10 +1,12 @@
 # app/plugins/speech_services/handlers/realtime_handler.py
 
-from typing import Dict, Any
-import aiohttp
-from typing import AsyncGenerator
 import logging
+from collections.abc import AsyncGenerator
+from typing import Any
+
+import aiohttp
 from fastapi import HTTPException
+
 from app.lib.dependencies import (
     get_secrets,
 )
@@ -20,7 +22,7 @@ class OpenAiTtsHandler:
     ):
         self.secrets = get_secrets()
         self.logger = logging.getLogger(__name__)
-        self.active_sessions: Dict[str, Dict[str, Any]] = {}
+        self.active_sessions: dict[str, dict[str, Any]] = {}
 
     async def stream_openai_tts(self, text: str) -> AsyncGenerator[bytes, None]:
         """

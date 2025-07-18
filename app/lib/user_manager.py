@@ -1,18 +1,19 @@
 # app/lib/user_manager.py
 
-from datetime import datetime, timezone
+import json
 import logging
 import traceback
-import json
+from datetime import UTC, datetime
 from uuid import uuid4
-from fastapi import HTTPException
-from tenacity import retry, wait_fixed, stop_after_attempt, RetryError
-from motor.motor_asyncio import AsyncIOMotorClient
+
 import redis.asyncio as redis
+from fastapi import HTTPException
+from motor.motor_asyncio import AsyncIOMotorClient
+from tenacity import RetryError, retry, stop_after_attempt, wait_fixed
 
 from app.lib.content_session_manager import ContentSessionManager
-from app.lib.permissions_token_manager import PermissionsTokenManager
 from app.lib.mongo_operations import MongoOperations
+from app.lib.permissions_token_manager import PermissionsTokenManager
 from app.schemas.mongo_schema import generate_user_data
 
 
@@ -60,7 +61,7 @@ class UserManager:
                 await self.permissions_token_manager.generate_permissions_token(user_id)
             )
             permissions_token_id = permissions_token["_id"]
-            created_at = datetime.now(timezone.utc).isoformat()
+            created_at = datetime.now(UTC).isoformat()
 
             user_data = await generate_user_data(
                 user_id, access_token, permissions_token_id, created_at
@@ -117,7 +118,7 @@ class UserManager:
                 await self.permissions_token_manager.generate_permissions_token(user_id)
             )
             permissions_token_id = permissions_token["_id"]
-            created_at = datetime.now(timezone.utc).isoformat()
+            created_at = datetime.now(UTC).isoformat()
 
             # Prepare the user data
             user_data = await generate_user_data(

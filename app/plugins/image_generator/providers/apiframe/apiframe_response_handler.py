@@ -1,18 +1,17 @@
-import aiohttp
-import eqty
-import boto3
 import json
 import logging
 import os
-import uuid
 import shutil
-from typing import Optional
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime
+
+import aiohttp
+import boto3
+import eqty
 from fastapi import HTTPException
-from typing import List
-from app.lib.dependencies import get_config
-from app.lib.dependencies import get_secrets
+
 from app.lib import save_asset
+from app.lib.dependencies import get_config, get_secrets
 
 # Local Plugin Imports
 from app.plugins.image_generator.models import ApiframeResponse, TaskData
@@ -65,7 +64,7 @@ class ApiframeResponseHandler:
 
         except Exception as e:
             self._logger.error(
-                f"Error processing Apiframe response for task {response.task_id}: {str(e)}"
+                f"Error processing Apiframe response for task {response.task_id}: {e!s}"
             )
             raise HTTPException(
                 status_code=500, detail="Error processing Apiframe response"
@@ -149,7 +148,7 @@ class ApiframeResponseHandler:
             "plugins": {
                 "ImageGenerator": {
                     apiframe_task_id: {
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "createdAt": datetime.now(UTC).isoformat(),
                         "messageId": message_id,
                         "taskId": response.task_id,
                         "sref": response.sref,
@@ -165,7 +164,7 @@ class ApiframeResponseHandler:
                 "queries": [
                     {
                         "messageId": message_id,
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "createdAt": datetime.now(UTC).isoformat(),
                         "role": "assistant",
                         "content": associated_message,
                     }
@@ -215,7 +214,7 @@ class ApiframeResponseHandler:
         if response.image_urls is None:
             raise ValueError("No image URLs found in Apiframe response")
 
-        image_datasets: List[eqty.Asset] = []
+        image_datasets: list[eqty.Asset] = []
 
         id = 1
 
@@ -253,7 +252,7 @@ class ApiframeResponseHandler:
 
         return tuple(image_datasets)
 
-    def generate_and_upload_manifest(self, content_session_id: str) -> Optional[str]:
+    def generate_and_upload_manifest(self, content_session_id: str) -> str | None:
         session_dir = os.path.join(
             eqty.sdk.config.Config().config_dir, content_session_id
         )

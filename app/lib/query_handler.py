@@ -1,17 +1,19 @@
-from fastapi import HTTPException
-import os
-import shutil
-import logging
 import inspect
 import json
+import logging
+import os
+import shutil
 import uuid
-import filelock
-from pathlib import Path
 from contextlib import contextmanager
-from app.lib import save_asset
-from app.clients.openai_client import OpenAI_Client
-from fastapi.responses import StreamingResponse, JSONResponse
+from pathlib import Path
+
 import eqty
+import filelock
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse
+
+from app.clients.openai_client import OpenAI_Client
+from app.lib import save_asset
 
 
 @contextmanager
@@ -134,7 +136,7 @@ class QueryHandler:
                         yield "\n\n" + "data: An error occurred.\n\n"
                         raise http_exc
                     except Exception as e:
-                        error_message = f"Unexpected error: {str(e)}"
+                        error_message = f"Unexpected error: {e!s}"
                         self._logger.error(error_message)
                         yield "\n\n" + "data: An error occurred\n\n"
                         raise HTTPException(status_code=500, detail=error_message)

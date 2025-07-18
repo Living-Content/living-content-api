@@ -1,8 +1,8 @@
 # app/plugins/image_generator/apiframe_request_handler.py
 
 import logging
-import uuid
 import re
+import uuid
 
 # Local Plugin Imports
 from apiframe_client import Apiframe_Client

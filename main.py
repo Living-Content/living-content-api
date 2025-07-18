@@ -1,39 +1,40 @@
-import os
-import logging
 import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette import status
-from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-# Import routers
-from app.routers import (
-    function,
-    health,
-    query,
-    websocket,
-    content_session,
-    webhook,
-    user,
-    access_token,
-    permissions_token,
-    notifications,
-)
 
 # Import custom modules and managers
 from app.lib.config import ConfigSingleton
-from app.lib.secrets import SecretsSingleton
 from app.lib.connection_manager import ConnectionManager
 from app.lib.content_session_manager import ContentSessionManager
+from app.lib.logging_config import setup_logging
 from app.lib.notification_manager import NotificationManager
-from app.lib.websocket_manager import WebSocketManager
-from app.lib.user_manager import UserManager
 from app.lib.permissions_token_manager import PermissionsTokenManager
+from app.lib.secrets import SecretsSingleton
+from app.lib.user_manager import UserManager
+from app.lib.websocket_manager import WebSocketManager
 from app.middleware.access_token_middleware import AccessTokenMiddleware
 from app.middleware.custom_cors_middleware import CustomCORSMiddleware
-from app.lib.logging_config import setup_logging
+
+# Import routers
+from app.routers import (
+    access_token,
+    content_session,
+    function,
+    health,
+    notifications,
+    permissions_token,
+    query,
+    user,
+    webhook,
+    websocket,
+)
 
 
 def include_all_plugin_routers(app: FastAPI, config: dict):
@@ -44,7 +45,7 @@ def include_all_plugin_routers(app: FastAPI, config: dict):
                 module = __import__(
                     f"app.plugins.{plugin_name}.router", fromlist=["router"]
                 )
-                router = getattr(module, "router")
+                router = module.router
                 app.include_router(router, tags=[plugin_name])
                 logging.info(f"Plugin '{plugin_name}' router included")
             except Exception as e:

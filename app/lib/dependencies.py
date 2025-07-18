@@ -1,27 +1,29 @@
 # app/plugins/image_generator/dependencies.py
 
-from fastapi import Request, Depends, WebSocket
-from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Any
+
 import redis.asyncio as redis
-from typing import Any, Dict, Union
+from fastapi import Depends, Request, WebSocket
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from app.clients.openai_client import OpenAI_Client
+from app.clients.websocket_client import WebSocketClient
 
 # Import custom modules
 from app.lib.config import ConfigSingleton
-from app.lib.secrets import SecretsSingleton
-from app.lib.notification_manager import NotificationManager
-from app.lib.user_manager import UserManager
-from app.lib.content_session_manager import ContentSessionManager
-from app.lib.permissions_token_manager import PermissionsTokenManager
-from app.clients.openai_client import OpenAI_Client
 from app.lib.connection_manager import ConnectionManager
-from app.lib.websocket_manager import WebSocketManager
-from app.clients.websocket_client import WebSocketClient
-from app.lib.query_handler import QueryHandler
+from app.lib.content_session_manager import ContentSessionManager
 from app.lib.function_handler import FunctionHandler
+from app.lib.notification_manager import NotificationManager
+from app.lib.permissions_token_manager import PermissionsTokenManager
+from app.lib.query_handler import QueryHandler
+from app.lib.secrets import SecretsSingleton
+from app.lib.user_manager import UserManager
+from app.lib.websocket_manager import WebSocketManager
 
 
 # Dependency functions for configuration and secrets management
-def get_config() -> Dict[str, Any]:
+def get_config() -> dict[str, Any]:
     """Retrieve the application configuration singleton.
 
     Returns:
@@ -31,7 +33,7 @@ def get_config() -> Dict[str, Any]:
     return ConfigSingleton.get_config()
 
 
-def get_secrets() -> Dict[str, Any]:
+def get_secrets() -> dict[str, Any]:
     """Retrieve the application secrets singleton.
 
     Returns:
@@ -42,7 +44,7 @@ def get_secrets() -> Dict[str, Any]:
 
 
 # Connection management dependencies
-def get_connection_manager(context: Union[Request, WebSocket]) -> ConnectionManager:
+def get_connection_manager(context: Request | WebSocket) -> ConnectionManager:
     """Get the ConnectionManager from the FastAPI app state.
     This is a unified dependency that works with both HTTP requests and WebSocket connections.
 

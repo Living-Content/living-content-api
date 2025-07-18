@@ -1,12 +1,15 @@
 import logging
+
 import redis.asyncio as redis
 from redis.exceptions import (
     ConnectionError as RedisConnectionError,
+)
+from redis.exceptions import (
     TimeoutError as RedisTimeoutError,
 )
+
 from app.lib.config import get_config
 from app.lib.secrets import get_secrets
-from typing import Optional
 
 
 async def init_redis() -> redis.Redis:
@@ -85,13 +88,13 @@ async def test_redis_connection(redis_client: redis.Redis):
         raise
 
 
-async def get_redis_client(redis_client: Optional[redis.Redis]) -> redis.Redis:
+async def get_redis_client(redis_client: redis.Redis | None) -> redis.Redis:
     if redis_client is None:
         raise RuntimeError("Redis client not initialized")
     return redis_client
 
 
-async def close_redis(redis_client: Optional[redis.Redis]):
+async def close_redis(redis_client: redis.Redis | None):
     if redis_client:
         try:
             await redis_client.close()

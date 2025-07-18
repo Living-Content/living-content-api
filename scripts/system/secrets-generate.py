@@ -1,13 +1,14 @@
-import os
-import yaml
 import argparse
+import os
+
+import yaml
 
 
 def load_secrets_yaml(env):
     """Load secrets from the secrets.yaml file for the given environment."""
     secrets_file = f"./secrets/{env}/secrets.yaml"
     try:
-        with open(secrets_file, "r") as file:
+        with open(secrets_file) as file:
             secrets = yaml.safe_load(file)
             return secrets
     except FileNotFoundError:
@@ -35,7 +36,7 @@ def write_secret_file(secret_dir, secret_name, secret_value):
         with open(secret_file, "w") as file:
             file.write(secret_value.strip())
         print(f"Secret written to {secret_file}")
-    except IOError as e:
+    except OSError as e:
         print(f"Error writing secret {secret_name}: {e}")
 
 

@@ -1,12 +1,14 @@
 # app/lib/mongo_operations.py
 
 import logging
-from fastapi import HTTPException
-from datetime import datetime, timezone, timedelta
 import traceback
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
 import inflection
+from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Any, Dict, List, Optional
+
 from app.lib.secrets import get_secrets
 
 
@@ -35,7 +37,7 @@ class MongoOperations:
         return d1
 
     # Create operations
-    async def create_user_in_mongo(self, user_data: Dict[str, Any]) -> None:
+    async def create_user_in_mongo(self, user_data: dict[str, Any]) -> None:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -70,7 +72,7 @@ class MongoOperations:
         except TypeError as te:
             self.logger.error(f"Invalid data type for permissions token: {te}")
             raise HTTPException(
-                status_code=500, detail=f"Internal Server Error: {str(te)}"
+                status_code=500, detail=f"Internal Server Error: {te!s}"
             )
         except Exception as e:
             self.logger.error(
@@ -79,7 +81,7 @@ class MongoOperations:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     async def create_content_session_in_mongo(
-        self, content_session_data: Dict[str, Any]
+        self, content_session_data: dict[str, Any]
     ) -> None:
         try:
             mongo_instance = self.mongo_client.get_database(
@@ -93,7 +95,7 @@ class MongoOperations:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     async def create_notification_in_mongo(
-        self, notification_data: Dict[str, Any]
+        self, notification_data: dict[str, Any]
     ) -> None:
         try:
             mongo_instance = self.mongo_client.get_database(
@@ -107,7 +109,7 @@ class MongoOperations:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     # Read operations
-    async def get_user_from_mongo(self, user_id: str) -> Optional[Dict[str, Any]]:
+    async def get_user_from_mongo(self, user_id: str) -> dict[str, Any] | None:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -158,7 +160,7 @@ class MongoOperations:
 
     async def get_access_token_from_mongo(
         self, access_token: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Retrieves user data from MongoDB using the access token.
 
@@ -196,7 +198,7 @@ class MongoOperations:
 
     async def get_permissions_token_from_mongo(
         self, permissions_token_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -219,7 +221,7 @@ class MongoOperations:
 
     async def get_content_session_from_mongo(
         self, user_id: str, content_session_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -242,7 +244,7 @@ class MongoOperations:
 
     async def get_notification_from_mongo(
         self, notification_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -263,7 +265,7 @@ class MongoOperations:
 
     async def get_unseen_notifications_from_mongo(
         self, user_id: str, content_session_id: str
-    ) -> Optional[List[Dict[str, Any]]]:
+    ) -> list[dict[str, Any]] | None:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -293,10 +295,10 @@ class MongoOperations:
     # Update operations
 
     async def update_content_session_in_mongo(
-        self, user_id: str, content_session_id: str, new_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, user_id: str, content_session_id: str, new_data: dict[str, Any]
+    ) -> dict[str, Any]:
         try:
-            current_time = datetime.now(timezone.utc).isoformat()
+            current_time = datetime.now(UTC).isoformat()
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
             ).get_collection("content_sessions")
@@ -347,7 +349,7 @@ class MongoOperations:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     async def update_permissions_token_in_mongo(
-        self, user_id: str, permissions_token_id: str, update_fields: Dict[str, Any]
+        self, user_id: str, permissions_token_id: str, update_fields: dict[str, Any]
     ) -> None:
         try:
             mongo_instance = self.mongo_client.get_database(
@@ -375,10 +377,10 @@ class MongoOperations:
             raise HTTPException(status_code=500, detail="Internal Server Error")
 
     async def update_user_in_mongo(
-        self, user_id: str, update_fields: Dict[str, Any]
-    ) -> Optional[str]:
+        self, user_id: str, update_fields: dict[str, Any]
+    ) -> str | None:
         try:
-            update_fields["lastUpdated"] = datetime.now(timezone.utc).isoformat()
+            update_fields["lastUpdated"] = datetime.now(UTC).isoformat()
 
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]
@@ -399,7 +401,7 @@ class MongoOperations:
 
     async def update_notification_as_seen_in_mongo(
         self, user_id: str, notification_id: str, seen_at: datetime
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
             mongo_instance = self.mongo_client.get_database(
                 self.secrets["mongo_db_name"]

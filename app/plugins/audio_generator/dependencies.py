@@ -1,6 +1,7 @@
 # app/plugins/image_generator/dependencies.py
 
 from fastapi import Depends
+
 from app.lib.dependencies import get_function_handler
 from app.lib.function_handler import FunctionHandler
 from app.plugins.audio_generator.functions import AudioGeneratorFunctions

@@ -1,11 +1,12 @@
 # app/plugins/image_generator/models.py
 
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional, Union
-import eqty
 import re
-from app.models.query import QueryRequest
 from dataclasses import dataclass
+
+import eqty
+from pydantic import BaseModel, Field
+
+from app.models.query import QueryRequest
 
 
 class ImageMetadata(BaseModel):
@@ -14,7 +15,7 @@ class ImageMetadata(BaseModel):
 
 
 class ImageGeneratorQueryRequest(QueryRequest):
-    selected_images: Optional[Dict[str, ImageMetadata]] = Field(
+    selected_images: dict[str, ImageMetadata] | None = Field(
         default=None,
         alias="selectedImages",
         description="A dictionary of selected images to be used for image generation, keyed by unique image IDs.",
@@ -25,11 +26,11 @@ class ApiframeResponse(BaseModel):
     status: str
     task_id: str
     task_type: str
-    sref: Optional[str] = None
-    percentage: Optional[Union[str, int]] = None
-    original_image_url: Optional[str] = None
-    image_urls: Optional[List[str]] = None
-    manifest_url: Optional[str] = None
+    sref: str | None = None
+    percentage: str | int | None = None
+    original_image_url: str | None = None
+    image_urls: list[str] | None = None
+    manifest_url: str | None = None
 
     @property
     def is_final(self) -> bool:

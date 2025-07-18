@@ -1,14 +1,16 @@
-from typing import Callable, Dict, Any, List, Optional
-import os
-import yaml
 import asyncio
-import aiofiles
 import logging
+import os
+from collections.abc import Callable
+from typing import Any
+
+import aiofiles
+import yaml
 
 
 class ConfigSingleton:
     _instance = None
-    _config: Dict[str, Any] = {}
+    _config: dict[str, Any] = {}
     _lock = asyncio.Lock()
     _initialized = False
     _logger = logging.getLogger(__name__)
@@ -20,8 +22,8 @@ class ConfigSingleton:
 
     @classmethod
     async def initialize(
-        cls, allowed_files: List[str], get_mongo_client: Optional[Callable] = None
-    ) -> Dict[str, Any]:
+        cls, allowed_files: list[str], get_mongo_client: Callable | None = None
+    ) -> dict[str, Any]:
         if not cls._initialized:
             async with cls._lock:
                 if not cls._initialized:
@@ -40,7 +42,7 @@ class ConfigSingleton:
         return cls._config
 
     @classmethod
-    async def _load_config_from_db(cls, db_client) -> Dict[str, Any]:
+    async def _load_config_from_db(cls, db_client) -> dict[str, Any]:
         db_config = {}
         db = db_client["config_db"]
         config_collection = db["Config"]
@@ -51,7 +53,7 @@ class ConfigSingleton:
         return db_config
 
     @classmethod
-    async def _load_config_from_yaml(cls, allowed_files: List[str]) -> Dict[str, Any]:
+    async def _load_config_from_yaml(cls, allowed_files: list[str]) -> dict[str, Any]:
         config_dir = "config/app"
         config_dict = {}
 
@@ -69,8 +71,8 @@ class ConfigSingleton:
 
     @classmethod
     async def reload(
-        cls, allowed_files: List[str], get_mongo_client: Callable
-    ) -> Dict[str, Any]:
+        cls, allowed_files: list[str], get_mongo_client: Callable
+    ) -> dict[str, Any]:
         async with cls._lock:
             db_client = await get_mongo_client()
             cls._config = await cls._load_config_from_db(db_client)

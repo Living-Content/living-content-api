@@ -1,10 +1,11 @@
-import yaml
 import argparse
 import os
-from typing import Dict, Any
+from typing import Any
+
+import yaml
 
 
-def get_nested_value(data: Dict[str, Any], key: str) -> Any:
+def get_nested_value(data: dict[str, Any], key: str) -> Any:
     try:
         keys = key.split(".")
         value = data
@@ -19,8 +20,8 @@ def get_nested_value(data: Dict[str, Any], key: str) -> Any:
 
 
 def extract_values(
-    data: Dict[str, Any], section: str, mappings: Dict[str, str]
-) -> Dict[str, Any]:
+    data: dict[str, Any], section: str, mappings: dict[str, str]
+) -> dict[str, Any]:
     extracted_data = {}
     try:
         # For secrets, we don't need to look for a section since the data is flat
@@ -56,7 +57,7 @@ def extract_values(
 
 def extract_env_secrets(
     env: str, config_dir: str, secrets_dir: str
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     env_data = {}
     secrets_data = {}
 
@@ -120,7 +121,7 @@ def extract_env_secrets(
             filepath = os.path.join(config_dir, filename)
             if os.path.exists(filepath):
                 try:
-                    with open(filepath, "r") as file:
+                    with open(filepath) as file:
                         data = yaml.safe_load(file)
                         if not isinstance(data, dict):
                             print(f"Warning: Invalid YAML structure in {filename}")
@@ -137,7 +138,7 @@ def extract_env_secrets(
         secrets_filepath = os.path.join(secrets_dir, secrets_yaml_file)
         if os.path.exists(secrets_filepath):
             try:
-                with open(secrets_filepath, "r") as file:
+                with open(secrets_filepath) as file:
                     secrets_data_raw = yaml.safe_load(file)
                     if not isinstance(secrets_data_raw, dict):
                         print("Warning: Invalid secrets.yaml structure")
@@ -159,8 +160,8 @@ def extract_env_secrets(
 
 
 def flatten_dict(
-    d: Dict[str, Any], parent_key: str = "", sep: str = "_"
-) -> Dict[str, Any]:
+    d: dict[str, Any], parent_key: str = "", sep: str = "_"
+) -> dict[str, Any]:
     try:
         items = []
         if not isinstance(d, dict):

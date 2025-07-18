@@ -1,7 +1,7 @@
 # app/models/permissions_token.py
 
+
 from pydantic import BaseModel
-from typing import Optional
 
 
 class PermissionsToken(BaseModel):
@@ -18,7 +18,7 @@ class PermissionsToken(BaseModel):
     """
     permissions_token: str
     user_id: str
-    permissions: Optional[dict] = None
+    permissions: dict | None = None
     role: str = "user"
     status: str = "unverified"
     created_at: float

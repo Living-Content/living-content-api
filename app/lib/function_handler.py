@@ -1,22 +1,24 @@
-import logging
 import importlib
-import eqty
 import json
+import logging
+from asyncio import Lock as AsyncLock
+from threading import Lock, RLock
+from typing import Any
+
+import eqty
+from fastapi import HTTPException, status
 from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception,
     RetryError,
     before_sleep_log,
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
 )
-from typing import List, Dict, Optional, Any, Tuple
-from fastapi import HTTPException, status
-from threading import Lock, RLock
-from asyncio import Lock as AsyncLock
+
+from app.clients.openai_client import OpenAI_Client
 from app.lib import save_asset
 from app.models.query import Messages, QueryRequest
-from app.clients.openai_client import OpenAI_Client
 
 
 class FunctionHandler:
@@ -59,9 +61,9 @@ class FunctionHandler:
                 self._modules_lock = RLock()
                 self._cache_lock = RLock()
                 self._async_lock = AsyncLock()
-                self.function_modules: Dict[str, object] = {}
-                self.function_cache: Dict[str, Tuple[object, str]] = {}
-                self._enabled_functions_cache: Optional[List[Dict]] = None
+                self.function_modules: dict[str, object] = {}
+                self.function_cache: dict[str, tuple[object, str]] = {}
+                self._enabled_functions_cache: list[dict] | None = None
 
                 # Initialize function modules
                 self.load_plugin_functions()
@@ -91,14 +93,14 @@ class FunctionHandler:
 
             except ImportError as e:
                 self._logger.error(
-                    f"Module {module_name} could not be imported: {str(e)}"
+                    f"Module {module_name} could not be imported: {e!s}"
                 )
             except AttributeError as e:
                 self._logger.error(
-                    f"Class {class_name} not found in module {module_name}: {str(e)}"
+                    f"Class {class_name} not found in module {module_name}: {e!s}"
                 )
             except Exception as e:
-                self._logger.error(f"Failed to load plugin {plugin}: {str(e)}")
+                self._logger.error(f"Failed to load plugin {plugin}: {e!s}")
 
         # Atomic update of function modules
         with self._modules_lock:
@@ -109,22 +111,22 @@ class FunctionHandler:
         try:
             internal_module_name = "app.lib.internal_functions"
             internal_module = importlib.import_module(internal_module_name)
-            internal_class = getattr(internal_module, "InternalFunctions")
+            internal_class = internal_module.InternalFunctions
 
             with self._modules_lock:
                 self.function_modules["internal_functions"] = internal_class(self)
             self._logger.info("Internal functions loaded successfully")
 
         except Exception as e:
-            self._logger.error(f"Failed to load internal functions: {str(e)}")
+            self._logger.error(f"Failed to load internal functions: {e!s}")
             raise
 
     async def get_enabled_functions(
         self,
-        user_id: Optional[str] = None,
-        access_token: Optional[str] = None,
-        function_id: Optional[str] = None,
-    ) -> List[Dict]:
+        user_id: str | None = None,
+        access_token: str | None = None,
+        function_id: str | None = None,
+    ) -> list[dict]:
         """Thread-safe retrieval of enabled functions."""
         async with self._async_lock:
             # Check cache first
@@ -163,7 +165,7 @@ class FunctionHandler:
             self._logger.debug("Function cache invalidated")
 
     @staticmethod
-    def filter_and_convert_messages(messages: List[Messages]) -> List[dict]:
+    def filter_and_convert_messages(messages: list[Messages]) -> list[dict]:
         """
         Static method for message conversion (thread-safe by design).
         """
@@ -197,8 +199,8 @@ class FunctionHandler:
         before_sleep=before_sleep_log(logging.getLogger(__name__), logging.WARNING),
     )
     async def _make_request_and_parse(
-        self, messages: List[Dict[str, str]], enabled_functions: List[Dict]
-    ) -> Dict[str, Any]:
+        self, messages: list[dict[str, str]], enabled_functions: list[dict]
+    ) -> dict[str, Any]:
         """Thread-safe request handling with retries."""
         try:
             response = await self.openai_client.client.chat.completions.create(
@@ -247,7 +249,7 @@ class FunctionHandler:
             return parsed_response
 
         except Exception as e:
-            self._logger.error(f"Error in _make_request_and_parse: {str(e)}")
+            self._logger.error(f"Error in _make_request_and_parse: {e!s}")
             raise
 
     @staticmethod
@@ -258,7 +260,7 @@ class FunctionHandler:
         reraise=True,
         before_sleep=before_sleep_log(logging.getLogger(__name__), logging.WARNING),
     )
-    async def _parse_llm_response(llm_response: str) -> Dict[str, Any]:
+    async def _parse_llm_response(llm_response: str) -> dict[str, Any]:
         """
         Parse LLM response with retry mechanism.
 
@@ -277,7 +279,7 @@ class FunctionHandler:
         try:
             result = json.loads(llm_response)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Error decoding JSON: {str(e)}")
+            raise ValueError(f"Error decoding JSON: {e!s}")
 
         if "function_id" not in result:
             raise ValueError("Invalid LLM response: missing 'function_id'")
@@ -302,8 +304,8 @@ class FunctionHandler:
         self,
         user_query: QueryRequest,
         content_session_id: str,
-        function_id: Optional[str] = None,
-    ) -> Tuple[eqty.Asset, Optional[eqty.Asset]]:
+        function_id: str | None = None,
+    ) -> tuple[eqty.Asset, eqty.Asset | None]:
         """Thread-safe function selection."""
         try:
             self._logger.debug(f"Selecting function for query: {user_query}")
@@ -410,7 +412,7 @@ class FunctionHandler:
                     messages, enabled_functions
                 )
             except RetryError as e:
-                self._logger.error(f"All retries failed: {str(e)}")
+                self._logger.error(f"All retries failed: {e!s}")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to process the request after multiple attempts.",
@@ -451,7 +453,7 @@ class FunctionHandler:
             self._logger.error(f"HTTP error in select_function: {e.detail}")
             raise
         except Exception as e:
-            error_message = f"Unexpected error during function selection: {str(e)}"
+            error_message = f"Unexpected error during function selection: {e!s}"
             self._logger.error(error_message)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -460,7 +462,7 @@ class FunctionHandler:
 
     async def load_function(
         self, function_id: eqty.Asset, query: QueryRequest
-    ) -> Tuple[bool, object, object]:
+    ) -> tuple[bool, object, object]:
         """Thread-safe function loading."""
         try:
             enabled_functions = await self.get_enabled_functions()
@@ -531,7 +533,7 @@ class FunctionHandler:
             )
             raise
         except Exception as e:
-            error_message = f"Error loading function: {str(e)}"
+            error_message = f"Error loading function: {e!s}"
             self._logger.error(error_message)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_message

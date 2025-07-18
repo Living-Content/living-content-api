@@ -1,7 +1,7 @@
 # app/models/function.py
 
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class GetEnabledFunctionListRequest(BaseModel):
@@ -12,4 +12,4 @@ class GetEnabledFunctionListRequest(BaseModel):
         function_type (Optional[str]): Optional filter to get functions of a specific type.
     """
 
-    function_type: Optional[str] = Field(None, alias="functionType")
+    function_type: str | None = Field(None, alias="functionType")

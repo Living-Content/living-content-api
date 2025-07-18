@@ -1,8 +1,9 @@
-import uuid
 import logging
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
-from tenacity import retry, wait_fixed, stop_after_attempt, RetryError
+from tenacity import RetryError, retry, stop_after_attempt, wait_fixed
 
 from app.lib.mongo_operations import MongoOperations
 from app.schemas.mongo_schema import generate_permissions_token_data
@@ -30,7 +31,7 @@ class PermissionsTokenManager:
         """
         try:
             permissions_token_id = str(uuid.uuid4())
-            created_at = datetime.now(timezone.utc).isoformat()
+            created_at = datetime.now(UTC).isoformat()
 
             # Generate token data
             token_data = await generate_permissions_token_data(
@@ -54,7 +55,7 @@ class PermissionsTokenManager:
         except ValueError as ve:
             self.logger.error(f"Invalid data type for permissions token: {ve}")
             raise HTTPException(
-                status_code=500, detail=f"Internal Server Error: {str(ve)}"
+                status_code=500, detail=f"Internal Server Error: {ve!s}"
             )
         except RetryError as re:
             self.logger.error(f"Retry failed during permission token generation: {re}")

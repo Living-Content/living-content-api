@@ -1,16 +1,18 @@
 # app/lib/websocket_manager.py
 
-import logging
+import asyncio
 import json
+import logging
+import os
 import uuid
-from typing import Tuple, Dict, Any
+from typing import Any
+
 from fastapi import WebSocket
 from motor.motor_asyncio import AsyncIOMotorClient
-from app.lib.mongo_operations import MongoOperations
+
 from app.lib.connection_manager import ConnectionManager
+from app.lib.mongo_operations import MongoOperations
 from app.lib.notification_manager import NotificationManager
-import asyncio
-import os
 
 
 class WebSocketManager:
@@ -42,7 +44,7 @@ class WebSocketManager:
 
     async def authenticate_user(
         self, websocket: WebSocket, mongo_client: AsyncIOMotorClient
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         try:
             auth_data = await websocket.receive_text()
             self.logger.debug(
@@ -115,7 +117,7 @@ class WebSocketManager:
             raise
 
     async def handle_incoming_websocket_message(
-        self, user_id: str, message_type: str, data: Dict[str, Any], client_id: str
+        self, user_id: str, message_type: str, data: dict[str, Any], client_id: str
     ):
         self.logger.debug(
             f"Worker {self.worker_id} handling message type: {message_type} for user: {user_id} client: {client_id}"
@@ -133,7 +135,7 @@ class WebSocketManager:
             return
 
     async def handle_update_notification_as_seen(
-        self, user_id: str, data: Dict[str, Any], client_id: str
+        self, user_id: str, data: dict[str, Any], client_id: str
     ):
         notification_id = data.get("notificationId")
         content_session_id = data.get("contentSessionId")
@@ -144,7 +146,7 @@ class WebSocketManager:
         )
 
     async def handle_update_unread_messages(
-        self, user_id: str, data: Dict[str, Any], client_id: str
+        self, user_id: str, data: dict[str, Any], client_id: str
     ):
         unread_messages = data.get("unreadMessageStatus")
         content_session_id = data.get("contentSessionId")
@@ -155,7 +157,7 @@ class WebSocketManager:
         )
 
     async def handle_acknowledgement(
-        self, user_id: str, data: Dict[str, Any], client_id: str
+        self, user_id: str, data: dict[str, Any], client_id: str
     ):
         """Handle acknowledgment messages from the WebSocket."""
         ack_sequence = data.get("sequence")
@@ -170,7 +172,7 @@ class WebSocketManager:
             )
 
     async def no_incoming_websocket_message_handler_found(
-        self, user_id: str, data: Dict[str, Any], client_id: str
+        self, user_id: str, data: dict[str, Any], client_id: str
     ):
         websocket_client = await self.connection_manager.get_websocket_client()
         self.logger.debug(
@@ -223,10 +225,8 @@ class WebSocketManager:
                 else:
                     # No more connections, remove the user entry
                     await redis_client.hdel("websocket_connections", user_id)
-            else:
-                # Legacy single connection cleanup
-                if connections_data["worker_id"] == self.worker_id:
-                    await redis_client.hdel("websocket_connections", user_id)
+            elif connections_data["worker_id"] == self.worker_id:
+                await redis_client.hdel("websocket_connections", user_id)
 
             self.logger.info(
                 f"Cleaned up connection for user {user_id} on worker {self.worker_id}"

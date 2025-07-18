@@ -1,7 +1,9 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+
 from app.lib.dependencies import get_http_notification_manager
 from app.lib.notification_manager import NotificationManager
-import logging
 
 router = APIRouter(tags=["Notifications"])
 
@@ -34,7 +36,7 @@ async def get_unseen_notifications(
         }
 
     except ValueError as e:
-        logging.error(f"Value error in get_unseen_notifications: {str(e)}")
+        logging.error(f"Value error in get_unseen_notifications: {e!s}")
         raise HTTPException(status_code=400, detail=str(e))
     except HTTPException as e:
         logging.error(
@@ -42,5 +44,5 @@ async def get_unseen_notifications(
         )
         raise e
     except Exception as e:
-        logging.error(f"Unexpected error in get_unseen_notifications: {str(e)}")
+        logging.error(f"Unexpected error in get_unseen_notifications: {e!s}")
         raise HTTPException(status_code=500, detail="Internal server error")

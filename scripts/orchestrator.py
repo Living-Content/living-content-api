@@ -1,27 +1,26 @@
-import os
-import sys
 import argparse
-import logging
-import subprocess
-import signal
 import ipaddress
-import yaml
-
-from datetime import datetime, timedelta, timezone
+import logging
+import os
+import signal
+import subprocess
+import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
-from dotenv import load_dotenv
 
 import psutil
+import yaml
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
-    PrivateFormat,
     NoEncryption,
+    PrivateFormat,
 )
 from cryptography.x509.oid import NameOID
+from dotenv import load_dotenv
 
 DEFAULT_TIMEOUT = 20
 LOG_FILE = "lc.log"
@@ -414,7 +413,7 @@ def docker_view_logs(verbose=False):
 
 def load_allowed_origins(env):
     config_file = Path(f"./config/{env}/app/ingress.yaml")
-    with open(config_file, "r") as file:
+    with open(config_file) as file:
         config = yaml.safe_load(file)
     allowed_origins = config.get("ingress", {}).get("allowed_origins", [])
 
@@ -495,8 +494,8 @@ def cert_generate(
             .issuer_name(ca_subject)
             .public_key(ca_key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.now(timezone.utc))
-            .not_valid_after(datetime.now(timezone.utc) + timedelta(days=3650))
+            .not_valid_before(datetime.now(UTC))
+            .not_valid_after(datetime.now(UTC) + timedelta(days=3650))
             .add_extension(
                 x509.BasicConstraints(ca=True, path_length=None), critical=True
             )
@@ -585,8 +584,8 @@ def cert_generate(
         .issuer_name(ca_cert.subject)
         .public_key(server_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.now(timezone.utc))
-        .not_valid_after(datetime.now(timezone.utc) + timedelta(days=3650))
+        .not_valid_before(datetime.now(UTC))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=3650))
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .add_extension(
             x509.KeyUsage(
