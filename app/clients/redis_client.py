@@ -18,9 +18,10 @@ async def init_redis() -> redis.Redis:
 
     redis_db = 0  # Default database index
 
-    ssl_ca_crt = config.get("ingress", {}).get("ssl_ca_crt")
-    shared_ssl_crt = config.get("ingress", {}).get("shared_ssl_crt")
-    shared_ssl_key = config.get("ingress", {}).get("shared_ssl_key")
+    # SSL paths are always the same in container
+    ssl_ca_crt = "/app/ssl/ca/ca.crt"
+    shared_ssl_crt = "/app/ssl/shared/shared.crt"
+    shared_ssl_key = "/app/ssl/shared/shared.key"
 
     redis_host = secrets.get("redis_host")
     redis_port = secrets.get("redis_port")

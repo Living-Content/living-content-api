@@ -1,9 +1,0 @@
-# ----------------------------------------------------------------
-# Internal functions
-# ----------------------------------------------------------------
-internal_functions:
-  - function_id: general_query
-    description: |
-      If no specific function is suggested or available. This function doesn't create remixes, generate content, or perform any other specific tasks.
-    hint: Ask a question
-    enabled: true

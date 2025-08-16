@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Any
 
-import aiofiles
+from dotenv import load_dotenv
 
 
 class SecretsSingleton:
@@ -21,54 +21,59 @@ class SecretsSingleton:
 
     @classmethod
     async def _load_secrets(cls) -> dict[str, Any]:
-        """Load secrets from files in the ./secrets/ directory."""
+        """Load secrets from environment variables or .env file."""
+        # Load .env file if it exists
+        load_dotenv()
+        
         secrets = {}
-        secrets_dir = "./secrets/"  # Secrets directory
-
-        try:
-            # List all files in the secrets directory
-            secret_files = os.listdir(secrets_dir)
-        except FileNotFoundError:
-            cls._logger.error(f"Secrets directory not found: {secrets_dir}")
-            return secrets
-        except Exception as e:
-            cls._logger.error(f"Error accessing secrets directory: {e}")
-            return secrets
-
-        # Process each secret file, skipping directories
-        for secret_file in secret_files:
-            secret_file_path = os.path.join(secrets_dir, secret_file)
-
-            # Skip if the item is a directory
-            if os.path.isdir(secret_file_path):
-                cls._logger.debug(f"Skipping directory: {secret_file_path}")
-                continue
-
-            cls._logger.info(f"Attempting to load secret from file: {secret_file_path}")
-
-            secret_value = await cls._load_secret_from_file(secret_file_path)
-
-            if secret_value:
-                # Use the filename (without the directory) as the key
-                secrets[secret_file] = secret_value
-            else:
-                cls._logger.warning(
-                    f"Secret file '{secret_file}' could not be read or is empty."
-                )
-
+        
+        # Define expected secret keys
+        secret_keys = [
+            "mongo_host",
+            "mongo_port",
+            "mongo_db_name",
+            "mongo_rw_username",
+            "mongo_rw_password",
+            "redis_host",
+            "redis_port",
+            "redis_password",
+            "openai_api_key",
+            "anthropic_api_key",
+            "google_api_key",
+            "azure_api_key",
+        ]
+        
+        # Load from environment variables
+        for key in secret_keys:
+            # Try uppercase first (standard for env vars)
+            value = os.getenv(key.upper())
+            if value is None:
+                # Try lowercase for backwards compatibility
+                value = os.getenv(key)
+            
+            if value:
+                secrets[key] = value
+                cls._logger.debug(f"Loaded secret: {key}")
+        
+        # Fallback to check ./secrets/ directory for backwards compatibility
+        secrets_dir = "./secrets/"
+        if os.path.exists(secrets_dir):
+            cls._logger.info("Found legacy ./secrets/ directory, loading for backwards compatibility")
+            for secret_file in os.listdir(secrets_dir):
+                if secret_file not in secrets:  # Don't override env vars
+                    secret_file_path = os.path.join(secrets_dir, secret_file)
+                    if os.path.isfile(secret_file_path):
+                        try:
+                            with open(secret_file_path, "r") as f:
+                                value = f.read().strip()
+                                if value:
+                                    secrets[secret_file] = value
+                                    cls._logger.debug(f"Loaded legacy secret from file: {secret_file}")
+                        except Exception as e:
+                            cls._logger.warning(f"Failed to read legacy secret file {secret_file}: {e}")
+        
         return secrets
 
-    @classmethod
-    async def _load_secret_from_file(cls, secret_file_path: str) -> str:
-        try:
-            async with aiofiles.open(secret_file_path, "r") as file:
-                secret_value = await file.read()
-                return secret_value.strip()  # Remove any extra whitespace/newlines
-        except FileNotFoundError:
-            cls._logger.error(f"Secret file {secret_file_path} not found.")
-        except Exception as e:
-            cls._logger.error(f"Error reading secret from {secret_file_path}: {e}")
-        return None
 
     @classmethod
     async def initialize(cls) -> dict[str, Any]:

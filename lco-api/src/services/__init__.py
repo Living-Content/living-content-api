@@ -1,0 +1,1 @@
+"""Business logic services - isolated from CLI for reusability."""

@@ -13,9 +13,9 @@ async def init_mongo() -> AsyncIOMotorClient:
 
     logging.debug("Initializing MongoDB client")
 
-    # MongoDB connection details from configuration
-    ssl_ca_crt = config.get("ingress", {}).get("ssl_ca_crt")
-    shared_ssl_pem = config.get("ingress", {}).get("shared_ssl_pem")
+    # SSL paths are always the same in container
+    ssl_ca_crt = "/app/ssl/ca/ca.crt"
+    shared_ssl_pem = "/app/ssl/shared/shared.pem"
 
     mongo_host = secrets.get("mongo_host")
     mongo_port = secrets.get("mongo_port")
